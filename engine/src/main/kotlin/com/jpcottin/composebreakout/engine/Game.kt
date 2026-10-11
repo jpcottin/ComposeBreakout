@@ -554,8 +554,26 @@ class Game(private val host: GameHost = GameHost.None) {
 
     // ── Update ────────────────────────────────────────────────────────────────
 
+    /**
+     * Advance the game by [dtIn] seconds of wall-clock time. The simulation
+     * runs in fixed ticks of [TICK] seconds: a frame's time is accumulated
+     * and as many whole ticks as it holds are taken, the remainder carried
+     * to the next frame. A 60, 90 or 120 Hz display therefore plays the
+     * very same game, and a hitch is clamped to [MAX_FRAME] so nothing warps.
+     */
     fun update(dtIn: Float) {
-        val dt = if (dtIn > 0.05f) 0.05f else dtIn   // clamp huge hitches
+        if (dtIn <= 0f) return
+        accumulator += if (dtIn > MAX_FRAME) MAX_FRAME else dtIn
+        while (accumulator >= TICK - 1e-6f) {
+            accumulator -= TICK
+            tick(TICK)
+        }
+    }
+
+    private var accumulator = 0f
+
+    /** One fixed step of the simulation. */
+    private fun tick(dt: Float) {
         animTime += dt
 
         // Particles and explosions animate in all states. Drag is exponential
@@ -1171,6 +1189,10 @@ class Game(private val host: GameHost = GameHost.None) {
         const val MAX_BALLS = 6
         /** The demo ball bounces under the title, which sits below the demo wall. */
         const val DEMO_CEILING_Y = -0.10f
+        /** The simulation's fixed step: 120 ticks a second. */
+        const val TICK = 1f / 120f
+        /** A frame longer than this (a hitch, a return from the background) counts as this. */
+        const val MAX_FRAME = 0.05f
         const val SERVE_DELAY = 0.5f            // a served ball waits this long for a tap
         const val LEVEL_CLEAR_PAUSE = 1.8f
         const val END_SCREEN_GRACE = 0.6f       // an end screen ignores taps this long
