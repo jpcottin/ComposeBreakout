@@ -26,6 +26,11 @@ PKG="system-images;android-${API_LEVEL};${TARGET};${ABI}"
 TAG="${TAG:-$TARGET}"
 EMULATOR_LOG="${EMULATOR_LOG:-emulator.log}"
 SERIAL="emulator-${PORT}"
+# A plain step has no adb on its PATH (the emulator-runner action adds the
+# platform-tools itself): the boot poll below and run-instrumented.sh after
+# it need it, in this step and the next ones.
+export PATH="$SDK/platform-tools:$SDK/emulator:$PATH"
+[ -n "${GITHUB_PATH:-}" ] && printf '%s\n%s\n' "$SDK/platform-tools" "$SDK/emulator" >> "$GITHUB_PATH"
 
 if [ "${SKIP_INSTALL:-0}" != 1 ]; then
     # The image is a large download; a dropped manifest or a truncated
