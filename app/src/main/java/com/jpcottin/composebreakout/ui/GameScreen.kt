@@ -53,6 +53,7 @@ import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -182,7 +183,11 @@ fun GameScreen(
     // What a screen reader says the field is, read once per step.
     observe(frame)
     val fieldState = if (game.isMidGame)
-        stringResource(R.string.a11y_field_state, game.level, game.breakableLeft, game.lives)
+        stringResource(
+            R.string.a11y_field_state, game.level,
+            pluralStringResource(R.plurals.a11y_bricks_left, game.breakableLeft, game.breakableLeft),
+            pluralStringResource(R.plurals.a11y_lives, game.lives, game.lives),
+        )
     else ""
     val content: @Composable (Modifier) -> Unit = { playfieldModifier ->
     Box(
@@ -377,7 +382,7 @@ private fun Announcer(game: Game, frame: LongState) {
     observe(frame)
     val levelStart = stringResource(R.string.a11y_level_start, game.level)
     val levelClear = stringResource(R.string.a11y_level_clear, game.level)
-    val ballLost = stringResource(R.string.a11y_ball_lost, game.lives)
+    val ballLost = stringResource(R.string.a11y_ball_lost, pluralStringResource(R.plurals.a11y_lives, game.lives, game.lives))
     val gameOver = stringResource(R.string.a11y_game_over, game.score)
     val win = stringResource(R.string.a11y_win, game.score)
     val paused = stringResource(R.string.a11y_paused)

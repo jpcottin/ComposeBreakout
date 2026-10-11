@@ -38,10 +38,20 @@
     <string name="touch_to_resume">TOUCHEZ POUR REPRENDRE</string>
     <string name="shortcut_autoplay_short">Pilote auto</string>
     <string name="shortcut_autoplay_long">Regarder le pilote jouer</string>
-    <string name="a11y_field_state">Niveau %1$d, %2$d briques restantes, %3$d vies</string>
+    <string name="a11y_field_state">Niveau %1$d, %2$s, %3$s</string>
     <string name="a11y_level_start">Le niveau %1$d commence</string>
     <string name="a11y_level_clear">Niveau %1$d terminé</string>
-    <string name="a11y_ball_lost">Balle perdue, %1$d vies restantes</string>
+    <string name="a11y_ball_lost">Balle perdue, il reste %1$s</string>
+    <plurals name="a11y_bricks_left">
+        <item quantity="one">%d brique restante</item>
+        <item quantity="many">%d de briques restantes</item>
+        <item quantity="other">%d briques restantes</item>
+    </plurals>
+    <plurals name="a11y_lives">
+        <item quantity="one">%d vie</item>
+        <item quantity="many">%d de vies</item>
+        <item quantity="other">%d vies</item>
+    </plurals>
     <string name="a11y_game_over">Perdu, score %1$d</string>
     <string name="a11y_win">Gagné, score %1$d</string>
     <string name="a11y_paused">Partie en pause</string>
