@@ -821,6 +821,8 @@ class Game(private val host: GameHost = GameHost.None) {
         val hits: Int = 0,
         /** Highest point reached (smaller is higher). */
         val minY: Float = 1f,
+        /** How close the path came to a breakable brick (world units; 0 is a hit). */
+        val closest: Float = 9f,
     )
 
     /** What the autopilot knows about one ball in play: its predicted landing
@@ -852,6 +854,7 @@ class Game(private val host: GameHost = GameHost.None) {
         var x = x0; var y = y0; var dx = dx0; var dy = dy0
         var hits = 0
         var minY = 1f
+        var closest = 9f
         val lim = fieldHalfWidth - World.BALL_R
         val top = World.TOP_WALL_Y + World.BALL_R
         val paddleTop = World.PADDLE_Y - World.PADDLE_HH
@@ -880,6 +883,12 @@ class Game(private val host: GameHost = GameHost.None) {
                     val bx = x - brickX(br); val by = y - brickY(br)
                     val px = World.BRICK_HW + World.BALL_R - abs(bx)
                     val py = World.BRICK_HH + World.BALL_R - abs(by)
+                    if (hp[i] > 0) {
+                        // How near this pass came to a breakable brick: the
+                        // gap outside its box, the larger axis counting.
+                        val gap = maxOf(-px, -py, 0f)
+                        if (gap < closest) closest = gap
+                    }
                     if (px <= 0f || py <= 0f) continue
                     if (px < py) {
                         dx = if (bx > 0f) abs(dx) else -abs(dx)
@@ -900,9 +909,9 @@ class Game(private val host: GameHost = GameHost.None) {
                     break
                 }
             }
-            if (dy > 0f && y + World.BALL_R >= paddleTop) return Flight(true, x, t, hits, minY)
+            if (dy > 0f && y + World.BALL_R >= paddleTop) return Flight(true, x, t, hits, minY, closest)
         }
-        return Flight(false, 0f, 0f, hits, minY)   // never came down within the horizon
+        return Flight(false, 0f, 0f, hits, minY, closest)   // never came down within the horizon
     }
 
     /** Predict where ball [b] lands and choose the rebound to give it there. */
@@ -986,7 +995,11 @@ class Game(private val host: GameHost = GameHost.None) {
                         if (s2 > best2) best2 = s2
                     }
                 }
+                // Nothing within two trips: lean toward the rebound whose
+                // path passes nearest a brick, so the ball walks toward the
+                // last ones instead of shuttling an empty lane.
                 score += 0.8f * best2 + 0.10f * abs(next.x - plan.land.x) + 0.05f * abs(uReal)
+                if (best2 == 0f) score += 0.3f * (1f - next.closest.coerceIn(0f, 1f))
             } else {
                 score -= 0.02f * abs(uReal)
             }
