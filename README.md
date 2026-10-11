@@ -35,6 +35,11 @@ with a hand-written Vulkan renderer.
 The phone captures come from an Android emulator; the foldable, TV and
 glasses pictures are the screenshot tests' own renders.
 
+<img src="docs/screenshots/autoplay.gif" width="270" alt="Fourteen seconds of the autopilot playing level 1: the paddle moves under the ball, bricks shatter into debris">
+
+Fourteen seconds of the autopilot on level 1, recorded on an Android
+emulator with the `autoplay` launch extra.
+
 ## The game
 
 - **Ten levels**, easy to hard: 4 rows of bricks at level 1, 9 at level 10,
