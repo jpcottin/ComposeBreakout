@@ -21,4 +21,16 @@
     <string name="settings_auto_play">Auto Play</string>
     <string name="settings_auto_play_hint">The autopilot plays the round for you</string>
     <string name="settings_done">Done</string>
+    <string name="settings_glasses">Glasses</string>
+    <string name="settings_glasses_none">No AI Glasses paired</string>
+    <string name="settings_glasses_connected">Paired: play on the glasses, the touchbar steers</string>
+    <string name="settings_glasses_active">Playing on the glasses; the phone waits</string>
+    <string name="settings_glasses_play">Play</string>
+    <string name="settings_glasses_phone">Phone</string>
+    <string name="settings_glasses_unavailable">None</string>
+    <string name="on_glasses">ON GLASSES</string>
+    <string name="on_glasses_hint">Settings brings the game back</string>
+    <string name="touch_to_play">Touch the bar to play</string>
+    <string name="touch_to_launch">TOUCH TO LAUNCH</string>
+    <string name="display_category_xr_projected" translatable="false">xr_projected</string>
 </resources>

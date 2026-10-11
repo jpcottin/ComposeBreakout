@@ -61,11 +61,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.LocalActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jpcottin.composebreakout.R
 import com.jpcottin.composebreakout.engine.Game
 import com.jpcottin.composebreakout.engine.World
+import com.jpcottin.composebreakout.glasses.GlassesSession
 import com.jpcottin.composebreakout.theme.AutoGreen
 import com.jpcottin.composebreakout.theme.LaneLine
 import com.jpcottin.composebreakout.theme.OnSpaceMuted
@@ -88,12 +90,17 @@ fun GameScreen(viewModel: GameViewModel) {
         onPauseOrDispose { viewModel.audio.pause() }
     }
     // The clock stops while the sheet is up: a round waits for the player.
+    val glassesConnected by GlassesSession.connected.collectAsStateWithLifecycle()
+    val glassesActive by GlassesSession.active.collectAsStateWithLifecycle()
+    val activity = LocalActivity.current
+    val onGlasses = viewModel.role == GameViewModel.Role.GLASSES
     GameScreen(
         game = viewModel.game,
         settings = settings,
         onOpenSettings = { showSettings = true },
         paused = showSettings,
-        tabletop = isTabletopPosture(),
+        tabletop = !onGlasses && isTabletopPosture(),
+        glasses = onGlasses,
     )
     if (showSettings) {
         SettingsSheet(
@@ -101,6 +108,16 @@ fun GameScreen(viewModel: GameViewModel) {
             onSoundChange = viewModel::setSoundEnabled,
             onAutoPlayChange = viewModel::setAutoPlay,
             onDismiss = { showSettings = false },
+            glasses = when {
+                glassesActive -> GlassesState.ACTIVE
+                glassesConnected -> GlassesState.CONNECTED
+                else -> GlassesState.NONE
+            },
+            onGlassesToggle = {
+                if (glassesActive) GlassesSession.bringBack()
+                else if (activity != null) GlassesSession.launch(activity)
+                showSettings = false
+            },
         )
     }
 }
@@ -112,6 +129,8 @@ fun GameScreen(viewModel: GameViewModel) {
  * the settings sheet). In the [tabletop] posture (a foldable half-opened,
  * the hinge across the middle) the playfield takes the upper half and a
  * control surface the lower half, so the fold never cuts through the game.
+ * On the [glasses] the background is pure black (transparent on AR lenses),
+ * there is no gear, and the hints speak of the touchbar.
  */
 @Composable
 fun GameScreen(
@@ -121,6 +140,7 @@ fun GameScreen(
     modifier: Modifier = Modifier,
     paused: Boolean = false,
     tabletop: Boolean = false,
+    glasses: Boolean = false,
 ) {
     // The engine is a plain object, not Compose state: this counter is what
     // tells Compose a step happened. Everything that shows engine state
@@ -153,10 +173,11 @@ fun GameScreen(
     val gearFocus = remember { FocusRequester() }
     LaunchedEffect(paused) { if (!paused) runCatching { playfieldFocus.requestFocus() } }
 
+    val background = if (glasses) Color.Black else MaterialTheme.colorScheme.background
     val content: @Composable (Modifier) -> Unit = { playfieldModifier ->
     Box(
         modifier = playfieldModifier
-            .background(MaterialTheme.colorScheme.background)
+            .background(background)
             .onSizeChanged { if (it.height > 0) game.setAspect(it.width.toFloat() / it.height) }
             .focusRequester(playfieldFocus)
             .focusable()
@@ -212,20 +233,23 @@ fun GameScreen(
     ) {
         PlayfieldCanvas(game, frame, Modifier.fillMaxSize())
 
+        val hint = if (glasses) InputHint.TOUCHBAR else if (noPointer) InputHint.KEYS else InputHint.TOUCH
         when (game.state) {
-            Game.State.TITLE -> TitleOverlay(game, frame, farViewing, noPointer, textScale)
+            Game.State.TITLE -> TitleOverlay(game, frame, farViewing, hint, textScale)
             Game.State.PLAYING, Game.State.LEVEL_CLEAR -> {
                 Hud(game, frame, chromePadding, textScale)
                 if (game.state == Game.State.LEVEL_CLEAR) LevelClearOverlay(game, frame, textScale)
-                else if (game.serveReady) LaunchHint(game, frame, noPointer, textScale)
+                else if (game.serveReady) LaunchHint(game, frame, hint, textScale)
             }
             Game.State.GAME_OVER -> EndScreen(game, frame, stringResource(R.string.game_over), Color(0x99990D14), textScale)
             Game.State.WIN -> EndScreen(game, frame, stringResource(R.string.you_win), Color(0x99198026), textScale)
         }
         BonusFlash(game, frame, textScale)
+        if (!glasses && game.glassesActive) OnGlassesBanner(game, frame, textScale)
 
         // The gear, top-right, under the status bar; the AUTO badge beside it.
-        Row(
+        // Not on the glasses: Settings lives on the phone.
+        if (!glasses) Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -265,7 +289,7 @@ fun GameScreen(
     }
 
     if (tabletop) {
-        Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Column(modifier.fillMaxSize().background(background)) {
             content(Modifier.fillMaxWidth().weight(1f))
             ControlSurface(game, frame, Modifier.fillMaxWidth().weight(1f))
         }
@@ -336,6 +360,9 @@ private const val CONTROL_SURFACE_POINTER_BASE = 1_000_000
 /** The control surface acts like the strip: its touches land in it. */
 private const val CONTROL_SURFACE_Y = (World.STRIP_TOP_Y + 1f) / 2f
 
+/** Which words the hints use: what the player taps, presses or touches. */
+private enum class InputHint { TOUCH, KEYS, TOUCHBAR }
+
 /** Reads the frame counter: the calling composable now recomposes every step. */
 @Suppress("UNUSED_EXPRESSION")
 private fun observe(frame: LongState) { frame.longValue }
@@ -366,7 +393,7 @@ private fun TextStyle.scaled(k: Float): TextStyle =
 /** The title: the name in the band between the demo wall and the bouncing
  *  ball, the podium under it, the tap hint above the paddle. */
 @Composable
-private fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, noPointer: Boolean, textScale: Float) {
+private fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, hint: InputHint, textScale: Float) {
     observe(frame)
     val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
     Box(Modifier.fillMaxSize()) {
@@ -396,7 +423,13 @@ private fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, noPo
             }
         }
         Text(
-            text = if (noPointer) stringResource(R.string.press_to_play) else stringResource(R.string.tap_to_play),
+            text = stringResource(
+                when (hint) {
+                    InputHint.TOUCH -> R.string.tap_to_play
+                    InputHint.KEYS -> R.string.press_to_play
+                    InputHint.TOUCHBAR -> R.string.touch_to_play
+                },
+            ),
             style = MaterialTheme.typography.titleMedium.scaled(textScale),
             color = Color.White.copy(alpha = 0.4f + 0.5f * pulse),
             modifier = Modifier.atWorld(0f, 0.44f),
@@ -449,11 +482,17 @@ private fun Hud(game: Game, frame: LongState, chromePadding: androidx.compose.ui
 
 /** A served ball waits for a tap. */
 @Composable
-private fun LaunchHint(game: Game, frame: LongState, noPointer: Boolean, textScale: Float) {
+private fun LaunchHint(game: Game, frame: LongState, hint: InputHint, textScale: Float) {
     observe(frame)
     val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
     Text(
-        text = if (noPointer) stringResource(R.string.press_to_launch) else stringResource(R.string.tap_to_launch),
+        text = stringResource(
+            when (hint) {
+                InputHint.TOUCH -> R.string.tap_to_launch
+                InputHint.KEYS -> R.string.press_to_launch
+                InputHint.TOUCHBAR -> R.string.touch_to_launch
+            },
+        ),
         style = MaterialTheme.typography.labelLarge.scaled(textScale),
         color = Color(0xFFA6CCFF).copy(alpha = 0.4f + 0.5f * pulse),
         modifier = Modifier.atWorld(0f, 0.45f),
@@ -514,6 +553,34 @@ private fun EndScreen(game: Game, frame: LongState, title: String, tint: Color, 
             color = Color.White.copy(alpha = 0.5f + 0.5f * pulse),
             modifier = Modifier.atWorld(0f, 0.30f),
         )
+    }
+}
+
+/** The phone while the round runs on the glasses: a banner over the frozen
+ *  field, the gear still reachable to bring the game back. */
+@Composable
+private fun OnGlassesBanner(game: Game, frame: LongState, textScale: Float) {
+    observe(frame)
+    val pulse = 0.5f + 0.5f * sin(game.animTime * 3f)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x99060812)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Column(Modifier.atWorld(0f, -0.05f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = stringResource(R.string.on_glasses),
+                style = MaterialTheme.typography.displayMedium.scaled(textScale),
+                color = PaddleCyan.copy(alpha = 0.7f + 0.3f * pulse),
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.on_glasses_hint),
+                style = MaterialTheme.typography.titleMedium.scaled(textScale),
+                color = OnSpaceMuted,
+            )
+        }
     }
 }
 

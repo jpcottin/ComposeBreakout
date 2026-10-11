@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jpcottin.composebreakout.glasses.GlassesSession
 import com.jpcottin.composebreakout.theme.BreakoutTheme
 import com.jpcottin.composebreakout.ui.GameScreen
 import com.jpcottin.composebreakout.ui.GameViewModel
@@ -24,6 +25,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        GlassesSession.startMonitoring(applicationContext)
         setContent {
             val viewModel: GameViewModel = viewModel(factory = GameViewModel.factory(applicationContext))
             BreakoutTheme {

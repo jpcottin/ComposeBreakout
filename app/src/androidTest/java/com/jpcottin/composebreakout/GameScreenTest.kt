@@ -70,6 +70,8 @@ class GameScreenTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Sound").assertIsDisplayed()
         composeTestRule.onNodeWithText("Auto Play").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Glasses").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No AI Glasses paired").assertIsDisplayed()   // none on an emulator
     }
 
     /** The engine behind the screen, from the activity's ViewModel store. */

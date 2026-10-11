@@ -25,6 +25,8 @@ import com.jpcottin.composebreakout.engine.Game
 import com.jpcottin.composebreakout.engine.GameHost
 import com.jpcottin.composebreakout.engine.HighScore
 import com.jpcottin.composebreakout.engine.SoundEvent
+import com.jpcottin.composebreakout.glasses.GlassesSession
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -50,7 +52,16 @@ class GameViewModel(
     private val store: DataStore<Preferences>,
     savedState: SavedStateHandle,
     private val vibrator: Vibrator?,
+    val role: Role = Role.PHONE,
 ) : ViewModel(), GameHost {
+
+    /** Which screen this engine plays on. */
+    enum class Role {
+        /** The phone: the strip steers, the gear opens Settings, Settings can hand the game to the glasses. */
+        PHONE,
+        /** The glasses' projected display: the whole touchbar steers, no gear, black background. */
+        GLASSES,
+    }
 
     val game: Game = Game(host = this)
 
@@ -67,6 +78,15 @@ class GameViewModel(
 
     init {
         game.seed(System.nanoTime().toInt())
+        if (role == Role.GLASSES) game.controlMode = Game.ControlMode.TOUCHBAR
+        else viewModelScope.launch {
+            // The phone freezes while the glasses play, and adopts whatever the
+            // glasses instance scored when the session ends.
+            GlassesSession.active.collect { active ->
+                game.glassesActive = active
+                if (!active) game.restoreHighScores(decodeScores(store.data.first()[KEY_HIGH_SCORES]) + game.highScores)
+            }
+        }
         // The round saved by a previous instance of this process, if any.
         savedState.get<Bundle>(KEY_SESSION)?.let { s ->
             if (s.getBoolean(SESSION_MID_GAME))
@@ -118,7 +138,15 @@ class GameViewModel(
     }
 
     override fun highScoresChanged(table: List<HighScore>) {
-        viewModelScope.launch { store.edit { it[KEY_HIGH_SCORES] = encodeScores(table) } }
+        // The phone and the glasses instances share the store: fold the other
+        // one's rows in rather than overwrite them.
+        viewModelScope.launch {
+            store.edit { prefs ->
+                val merged = (decodeScores(prefs[KEY_HIGH_SCORES]) + table)
+                    .distinct().sortedByDescending { it.score }.take(Game.MAX_SCORES)
+                prefs[KEY_HIGH_SCORES] = encodeScores(merged)
+            }
+        }
     }
 
     companion object {
@@ -143,13 +171,13 @@ class GameViewModel(
                 if (score <= 0L) null else HighScore(score, level)
             }
 
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(context: Context, role: Role = Role.PHONE): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = context.applicationContext
                 val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                     (app.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
                 else @Suppress("DEPRECATION") (app.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)
-                GameViewModel(app.settingsStore, createSavedStateHandle(), vibrator)
+                GameViewModel(app.settingsStore, createSavedStateHandle(), vibrator, role)
             }
         }
     }

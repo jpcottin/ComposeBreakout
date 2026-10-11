@@ -11,6 +11,7 @@ import com.jpcottin.composebreakout.engine.Game
 import com.jpcottin.composebreakout.engine.HighScore
 import com.jpcottin.composebreakout.theme.BreakoutTheme
 import com.jpcottin.composebreakout.ui.GameScreen
+import com.jpcottin.composebreakout.ui.GlassesState
 import com.jpcottin.composebreakout.ui.Settings
 import com.jpcottin.composebreakout.ui.SettingsContent
 
@@ -76,10 +77,26 @@ private fun winGame(aspect: Float): Game = Game().apply {
 }
 
 @Composable
-private fun Screen(game: Game, autoPlay: Boolean = false, tabletop: Boolean = false) {
+private fun Screen(game: Game, autoPlay: Boolean = false, tabletop: Boolean = false, glasses: Boolean = false) {
     BreakoutTheme {
-        GameScreen(game = game, settings = Settings(autoPlay = autoPlay), onOpenSettings = {}, paused = true, tabletop = tabletop)
+        GameScreen(
+            game = game, settings = Settings(autoPlay = autoPlay), onOpenSettings = {},
+            paused = true, tabletop = tabletop, glasses = glasses,
+        )
     }
+}
+
+/** The phone's game, frozen while the glasses play. */
+private fun handedOffGame(aspect: Float): Game = playingGame(aspect).apply { glassesActive = true }
+
+/** The glasses' own game: touchbar mode, a brick or two down. */
+private fun glassesGame(aspect: Float): Game = Game().apply {
+    setAspect(aspect)
+    controlMode = Game.ControlMode.TOUCHBAR
+    restoreSession(2, 310, 5)
+    debug.setBall(-0.15f, 0.10f, 0.35f, -1f)
+    debug.killBrick(wallColumns + 3)
+    step(this, 0.3f)
 }
 
 // ── Title ────────────────────────────────────────────────────────────────────
@@ -149,10 +166,55 @@ fun GameOverScreenshot() = Screen(gameOverGame(PHONE))
 @Composable
 fun WinTabletScreenshot() = Screen(winGame(TABLET))
 
+// ── AI Glasses ───────────────────────────────────────────────────────────────
+
+@PreviewTest
+@Preview(name = "Glasses", widthDp = 640, heightDp = 360, showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+fun GlassesScreenshot() = Screen(glassesGame(640f / 360f), glasses = true)
+
+@PreviewTest
+@Preview(name = "Glasses title", widthDp = 640, heightDp = 360, showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+fun GlassesTitleScreenshot() = Screen(titleGame(640f / 360f).apply { controlMode = Game.ControlMode.TOUCHBAR }, glasses = true)
+
+@PreviewTest
+@Preview(name = "On glasses banner", device = Devices.PHONE, showBackground = true)
+@Composable
+fun OnGlassesScreenshot() = Screen(handedOffGame(PHONE))
+
+@PreviewTest
+@Preview(name = "Settings glasses paired", widthDp = 400, heightDp = 440, showBackground = true)
+@Composable
+fun SettingsGlassesPairedScreenshot() {
+    BreakoutTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            SettingsContent(
+                settings = Settings(), onSoundChange = {}, onAutoPlayChange = {}, onDone = {},
+                glasses = GlassesState.CONNECTED,
+            )
+        }
+    }
+}
+
+@PreviewTest
+@Preview(name = "Settings glasses active", widthDp = 400, heightDp = 440, showBackground = true)
+@Composable
+fun SettingsGlassesActiveScreenshot() {
+    BreakoutTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            SettingsContent(
+                settings = Settings(), onSoundChange = {}, onAutoPlayChange = {}, onDone = {},
+                glasses = GlassesState.ACTIVE,
+            )
+        }
+    }
+}
+
 // ── Settings ─────────────────────────────────────────────────────────────────
 
 @PreviewTest
-@Preview(name = "Settings", widthDp = 400, heightDp = 360, showBackground = true)
+@Preview(name = "Settings", widthDp = 400, heightDp = 440, showBackground = true)
 @Composable
 fun SettingsScreenshot() {
     BreakoutTheme {

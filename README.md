@@ -13,11 +13,10 @@ bench run on any JVM in seconds. Sibling of
 [VulkanBreakout](https://github.com/jpcottin/VulkanBreakout), the same game
 with a hand-written Vulkan renderer.
 
-> **Status:** the game is playable — ten levels, the four bonuses, the
-> high-score table, the end screens, sounds and haptics — Auto Play wins
-> it, and it plays on a phone, a foldable (open, closed or half-opened), a
-> tablet, an XR panel and a TV with a D-pad. The glasses mode lands in the
-> next pull request.
+> **Status:** complete — ten levels, the four bonuses, the high-score
+> table, the end screens, sounds and haptics, Auto Play, and it plays on a
+> phone, a foldable (open, closed or half-opened), a tablet, an XR panel, a
+> TV with a D-pad and a pair of AI Glasses.
 
 ## The game
 
@@ -58,6 +57,12 @@ with a hand-written Vulkan renderer.
   three, an arpeggio) from the first serve to the end screen. A lost ball
   is also a heavy click from the vibrator. The Sound switch silences all of
   it.
+- **Play on AI Glasses:** with Display Glasses paired, Settings shows a
+  Glasses row — *PLAY* hands the game to the glasses' projected display,
+  where the **touchbar** drives it: finger position steers the paddle,
+  contact launches the ball. The phone shows an "ON GLASSES" banner over
+  its frozen field; *PHONE* (in Settings) brings the game home. With
+  nothing paired the row reads *NONE*.
 
 ## Modules
 
@@ -106,6 +111,16 @@ with a hand-written Vulkan renderer.
   never waits on audio. The synth's tests check every effect sounds and
   ends, the brick pop carries its pitch, the mix never clips and the track
   keeps its level after ten minutes.
+- **AI Glasses (Android XR projected)** — the glasses expose a secondary
+  display owned by a virtual device. `GlassesSession` uses
+  `androidx.xr.projected` to observe pairing and to launch
+  `GlassesActivity` — the same Compose screen, declared with
+  `requiredDisplayCategory="xr_projected"` — onto that display. The glasses
+  activity runs its own engine in touchbar mode, with no gear and a pure
+  black background (transparent on additive AR lenses); the phone's engine
+  freezes under a banner while the session flag is set and adopts the
+  glasses' high scores when it clears. The two instances share the
+  DataStore, so a save from either folds the other's rows in.
 - **Chrome placed in world coordinates** — the HUD overlays (title, launch
   hint, level banner, end screens, bonus flash) use a layout modifier that
   puts an element's centre at a world point, the same mapping the canvas
