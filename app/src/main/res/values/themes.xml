@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Minimal dark NoActionBar parent. The app forces a dark Compose theme,
+        and `enableEdgeToEdge` is called from MainActivity, so the XML theme
+        only needs to declare "no action bar" + the game's own background so
+        the first frame does not flash.
+    -->
+    <style name="Theme.ComposeBreakout" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#080A17</item>
+    </style>
+</resources>

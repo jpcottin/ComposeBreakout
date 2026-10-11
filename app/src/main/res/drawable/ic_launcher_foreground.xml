@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- The game in one glance, inside the 66dp safe zone: three rows of
+         glossy bricks, the ball mid-flight with its glow, and the paddle.
+         Each brick is a rounded block with a vertical gradient and a light
+         top edge; the ball's trail suggests the bounce it just took. -->
+
+    <!-- Row 1: red -->
+    <path android:pathData="M23,27 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="30" android:startY="27" android:endX="30" android:endY="36" android:startColor="#FF7A6E" android:endColor="#D8352C" /></aapt:attr>
+    </path>
+    <path android:pathData="M39.9,27 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="47" android:startY="27" android:endX="47" android:endY="36" android:startColor="#FF7A6E" android:endColor="#D8352C" /></aapt:attr>
+    </path>
+    <path android:pathData="M56.8,27 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="64" android:startY="27" android:endX="64" android:endY="36" android:startColor="#FF7A6E" android:endColor="#D8352C" /></aapt:attr>
+    </path>
+    <path android:pathData="M73.7,27 h11.3 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-11.3 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="79" android:startY="27" android:endX="79" android:endY="36" android:startColor="#FF7A6E" android:endColor="#D8352C" /></aapt:attr>
+    </path>
+    <!-- Row 2: orange — one brick already gone (the ball came through here) -->
+    <path android:pathData="M23,38.2 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="30" android:startY="38" android:endX="30" android:endY="47" android:startColor="#FFC56E" android:endColor="#E67E1C" /></aapt:attr>
+    </path>
+    <path android:pathData="M39.9,38.2 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="47" android:startY="38" android:endX="47" android:endY="47" android:startColor="#FFC56E" android:endColor="#E67E1C" /></aapt:attr>
+    </path>
+    <path android:pathData="M73.7,38.2 h11.3 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-11.3 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="79" android:startY="38" android:endX="79" android:endY="47" android:startColor="#FFC56E" android:endColor="#E67E1C" /></aapt:attr>
+    </path>
+    <!-- Row 3: yellow -->
+    <path android:pathData="M23,49.4 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="30" android:startY="49" android:endX="30" android:endY="58" android:startColor="#FFF08A" android:endColor="#E6B820" /></aapt:attr>
+    </path>
+    <path android:pathData="M39.9,49.4 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="47" android:startY="49" android:endX="47" android:endY="58" android:startColor="#FFF08A" android:endColor="#E6B820" /></aapt:attr>
+    </path>
+    <path android:pathData="M56.8,49.4 h14 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-14 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="64" android:startY="49" android:endX="64" android:endY="58" android:startColor="#FFF08A" android:endColor="#E6B820" /></aapt:attr>
+    </path>
+    <path android:pathData="M73.7,49.4 h11.3 a1.8,1.8 0 0 1 1.8,1.8 v5.4 a1.8,1.8 0 0 1 -1.8,1.8 h-11.3 a1.8,1.8 0 0 1 -1.8,-1.8 v-5.4 a1.8,1.8 0 0 1 1.8,-1.8 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="79" android:startY="49" android:endX="79" android:endY="58" android:startColor="#FFF08A" android:endColor="#E6B820" /></aapt:attr>
+    </path>
+    <!-- Glossy top edges on every brick -->
+    <path android:fillColor="#55FFFFFF" android:pathData="M22.6,28.2h15v1.6h-15z M39.5,28.2h15v1.6h-15z M56.4,28.2h15v1.6h-15z M73.3,28.2h12.3v1.6h-12.3z M22.6,39.4h15v1.6h-15z M39.5,39.4h15v1.6h-15z M73.3,39.4h12.3v1.6h-12.3z M22.6,50.6h15v1.6h-15z M39.5,50.6h15v1.6h-15z M56.4,50.6h15v1.6h-15z M73.3,50.6h12.3v1.6h-12.3z" />
+
+    <!-- The ball's trail: three fading ghosts along its last bounce -->
+    <path android:fillColor="#22FFF2C8" android:pathData="M61,56 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 z" />
+    <path android:fillColor="#33FFF2C8" android:pathData="M58.5,60.5 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0 z" />
+    <path android:fillColor="#55FFF2C8" android:pathData="M56,65 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 z" />
+    <!-- The ball: a warm glow under a bright disc with a highlight -->
+    <path android:pathData="M53.5,69.5 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="53.5" android:centerY="69.5" android:gradientRadius="8" android:startColor="#80FFE6A0" android:endColor="#00FFE6A0" /></aapt:attr>
+    </path>
+    <path android:fillColor="#FFF7D9" android:pathData="M53.5,69.5 m-3.8,0 a3.8,3.8 0 1,0 7.6,0 a3.8,3.8 0 1,0 -7.6,0 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M52.3,68.2 m-1.2,0 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0 z" />
+
+    <!-- The paddle: a rounded cyan bar with a bright top line and a soft glow -->
+    <path android:pathData="M54,79.5 m-18,0 a18,6 0 1,0 36,0 a18,6 0 1,0 -36,0 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="54" android:centerY="79.5" android:gradientRadius="18" android:startColor="#404DB8F2" android:endColor="#004DB8F2" /></aapt:attr>
+    </path>
+    <path android:pathData="M39.5,76.5h29a3,3 0 0,1 3,3a3,3 0 0,1 -3,3h-29a3,3 0 0,1 -3,-3a3,3 0 0,1 3,-3z">
+        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="54" android:startY="76.5" android:endX="54" android:endY="82.5" android:startColor="#7CD0FF" android:endColor="#2E8FD0" /></aapt:attr>
+    </path>
+    <path android:fillColor="#CCF2FF" android:pathData="M40,77.3h28v1.1h-28z" />
+</vector>

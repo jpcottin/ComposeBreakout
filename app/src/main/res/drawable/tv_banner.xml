@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="VectorRaster,VectorPath"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+
+    <!-- TV launcher banner: the icon's scene on the left, the name as block
+         letters on the right (VectorDrawables cannot draw text, so the
+         letters are a 5x7 bitmap font expanded into squares). -->
+    <path android:pathData="M0,0h320v180h-320z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="90" android:centerY="150" android:gradientRadius="260" android:startColor="#1E2A5A" android:endColor="#07091A" />
+        </aapt:attr>
+    </path>
+
+    <!-- bricks -->
+    <path android:fillColor="#F05A50" android:pathData="M24,36h22v12h-22z M50,36h22v12h-22z M76,36h22v12h-22z" />
+    <path android:fillColor="#F09A30" android:pathData="M24,52h22v12h-22z M76,52h22v12h-22z" />
+    <path android:fillColor="#F0D040" android:pathData="M24,68h22v12h-22z M50,68h22v12h-22z M76,68h22v12h-22z" />
+    <path android:fillColor="#55FFFFFF" android:pathData="M24,36h22v2.5h-22z M50,36h22v2.5h-22z M76,36h22v2.5h-22z M24,52h22v2.5h-22z M76,52h22v2.5h-22z M24,68h22v2.5h-22z M50,68h22v2.5h-22z M76,68h22v2.5h-22z" />
+    <!-- ball -->
+    <path android:pathData="M61,104 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 z">
+        <aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="61" android:centerY="104" android:gradientRadius="12" android:startColor="#80FFE6A0" android:endColor="#00FFE6A0" /></aapt:attr>
+    </path>
+    <path android:fillColor="#FFF7D9" android:pathData="M61,104 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 z" />
+    <!-- paddle -->
+    <path android:fillColor="#4DB8F2" android:pathData="M42,128h40a5,5 0 0,1 5,5a5,5 0 0,1 -5,5h-40a5,5 0 0,1 -5,-5a5,5 0 0,1 5,-5z" />
+    <path android:fillColor="#CCF2FF" android:pathData="M43,129.5h38v1.6h-38z" />
+
+    <!-- BREAKOUT -->
+    <path android:fillColor="#FFCC4D" android:pathData="M118.0,76.0h3.0v3.0h-3.0z M121.0,76.0h3.0v3.0h-3.0z M124.0,76.0h3.0v3.0h-3.0z M127.0,76.0h3.0v3.0h-3.0z M118.0,79.0h3.0v3.0h-3.0z M130.0,79.0h3.0v3.0h-3.0z M118.0,82.0h3.0v3.0h-3.0z M130.0,82.0h3.0v3.0h-3.0z M118.0,85.0h3.0v3.0h-3.0z M121.0,85.0h3.0v3.0h-3.0z M124.0,85.0h3.0v3.0h-3.0z M127.0,85.0h3.0v3.0h-3.0z M118.0,88.0h3.0v3.0h-3.0z M130.0,88.0h3.0v3.0h-3.0z M118.0,91.0h3.0v3.0h-3.0z M130.0,91.0h3.0v3.0h-3.0z M118.0,94.0h3.0v3.0h-3.0z M121.0,94.0h3.0v3.0h-3.0z M124.0,94.0h3.0v3.0h-3.0z M127.0,94.0h3.0v3.0h-3.0z M136.0,76.0h3.0v3.0h-3.0z M139.0,76.0h3.0v3.0h-3.0z M142.0,76.0h3.0v3.0h-3.0z M145.0,76.0h3.0v3.0h-3.0z M136.0,79.0h3.0v3.0h-3.0z M148.0,79.0h3.0v3.0h-3.0z M136.0,82.0h3.0v3.0h-3.0z M148.0,82.0h3.0v3.0h-3.0z M136.0,85.0h3.0v3.0h-3.0z M139.0,85.0h3.0v3.0h-3.0z M142.0,85.0h3.0v3.0h-3.0z M145.0,85.0h3.0v3.0h-3.0z M136.0,88.0h3.0v3.0h-3.0z M142.0,88.0h3.0v3.0h-3.0z M136.0,91.0h3.0v3.0h-3.0z M145.0,91.0h3.0v3.0h-3.0z M136.0,94.0h3.0v3.0h-3.0z M148.0,94.0h3.0v3.0h-3.0z M154.0,76.0h3.0v3.0h-3.0z M157.0,76.0h3.0v3.0h-3.0z M160.0,76.0h3.0v3.0h-3.0z M163.0,76.0h3.0v3.0h-3.0z M166.0,76.0h3.0v3.0h-3.0z M154.0,79.0h3.0v3.0h-3.0z M154.0,82.0h3.0v3.0h-3.0z M154.0,85.0h3.0v3.0h-3.0z M157.0,85.0h3.0v3.0h-3.0z M160.0,85.0h3.0v3.0h-3.0z M163.0,85.0h3.0v3.0h-3.0z M154.0,88.0h3.0v3.0h-3.0z M154.0,91.0h3.0v3.0h-3.0z M154.0,94.0h3.0v3.0h-3.0z M157.0,94.0h3.0v3.0h-3.0z M160.0,94.0h3.0v3.0h-3.0z M163.0,94.0h3.0v3.0h-3.0z M166.0,94.0h3.0v3.0h-3.0z M175.0,76.0h3.0v3.0h-3.0z M178.0,76.0h3.0v3.0h-3.0z M181.0,76.0h3.0v3.0h-3.0z M172.0,79.0h3.0v3.0h-3.0z M184.0,79.0h3.0v3.0h-3.0z M172.0,82.0h3.0v3.0h-3.0z M184.0,82.0h3.0v3.0h-3.0z M172.0,85.0h3.0v3.0h-3.0z M175.0,85.0h3.0v3.0h-3.0z M178.0,85.0h3.0v3.0h-3.0z M181.0,85.0h3.0v3.0h-3.0z M184.0,85.0h3.0v3.0h-3.0z M172.0,88.0h3.0v3.0h-3.0z M184.0,88.0h3.0v3.0h-3.0z M172.0,91.0h3.0v3.0h-3.0z M184.0,91.0h3.0v3.0h-3.0z M172.0,94.0h3.0v3.0h-3.0z M184.0,94.0h3.0v3.0h-3.0z M190.0,76.0h3.0v3.0h-3.0z M202.0,76.0h3.0v3.0h-3.0z M190.0,79.0h3.0v3.0h-3.0z M199.0,79.0h3.0v3.0h-3.0z M190.0,82.0h3.0v3.0h-3.0z M196.0,82.0h3.0v3.0h-3.0z M190.0,85.0h3.0v3.0h-3.0z M193.0,85.0h3.0v3.0h-3.0z M190.0,88.0h3.0v3.0h-3.0z M196.0,88.0h3.0v3.0h-3.0z M190.0,91.0h3.0v3.0h-3.0z M199.0,91.0h3.0v3.0h-3.0z M190.0,94.0h3.0v3.0h-3.0z M202.0,94.0h3.0v3.0h-3.0z M211.0,76.0h3.0v3.0h-3.0z M214.0,76.0h3.0v3.0h-3.0z M217.0,76.0h3.0v3.0h-3.0z M208.0,79.0h3.0v3.0h-3.0z M220.0,79.0h3.0v3.0h-3.0z M208.0,82.0h3.0v3.0h-3.0z M220.0,82.0h3.0v3.0h-3.0z M208.0,85.0h3.0v3.0h-3.0z M220.0,85.0h3.0v3.0h-3.0z M208.0,88.0h3.0v3.0h-3.0z M220.0,88.0h3.0v3.0h-3.0z M208.0,91.0h3.0v3.0h-3.0z M220.0,91.0h3.0v3.0h-3.0z M211.0,94.0h3.0v3.0h-3.0z M214.0,94.0h3.0v3.0h-3.0z M217.0,94.0h3.0v3.0h-3.0z M226.0,76.0h3.0v3.0h-3.0z M238.0,76.0h3.0v3.0h-3.0z M226.0,79.0h3.0v3.0h-3.0z M238.0,79.0h3.0v3.0h-3.0z M226.0,82.0h3.0v3.0h-3.0z M238.0,82.0h3.0v3.0h-3.0z M226.0,85.0h3.0v3.0h-3.0z M238.0,85.0h3.0v3.0h-3.0z M226.0,88.0h3.0v3.0h-3.0z M238.0,88.0h3.0v3.0h-3.0z M226.0,91.0h3.0v3.0h-3.0z M238.0,91.0h3.0v3.0h-3.0z M229.0,94.0h3.0v3.0h-3.0z M232.0,94.0h3.0v3.0h-3.0z M235.0,94.0h3.0v3.0h-3.0z M244.0,76.0h3.0v3.0h-3.0z M247.0,76.0h3.0v3.0h-3.0z M250.0,76.0h3.0v3.0h-3.0z M253.0,76.0h3.0v3.0h-3.0z M256.0,76.0h3.0v3.0h-3.0z M250.0,79.0h3.0v3.0h-3.0z M250.0,82.0h3.0v3.0h-3.0z M250.0,85.0h3.0v3.0h-3.0z M250.0,88.0h3.0v3.0h-3.0z M250.0,91.0h3.0v3.0h-3.0z M250.0,94.0h3.0v3.0h-3.0z" />
+    <!-- COMPOSE, small, under the name -->
+</vector>
