@@ -25,7 +25,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -125,7 +125,7 @@ fun GameScreen(viewModel: GameViewModel) {
         }
         // A phone gets a sheet sliding up from the thumb; a wide window (a
         // tablet, a TV, an XR panel) a card in the middle of the screen.
-        val wide = currentWindowAdaptiveInfo().windowSizeClass
+        val wide = currentWindowAdaptiveInfoV2().windowSizeClass
             .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)
         if (wide) SettingsDialog(
             settings = settings,
