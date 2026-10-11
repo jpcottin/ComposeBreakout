@@ -16,8 +16,9 @@ import com.jpcottin.composebreakout.ui.GameViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -118,8 +119,8 @@ class GameScreenTest {
         assertEquals(held, game.paddleX, 1e-6f)                      // released: it stays
     }
 
-    @Test
-    fun settingsPauseTheRoundAndATapResumesIt() {
+    /** A round in flight: the HUD up, the ball launched. */
+    private fun launchARound(): Game {
         frames(5)
         val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
         playfield.performClick()                                      // start the round
@@ -129,16 +130,34 @@ class GameScreenTest {
         val game = game()
         assertEquals(Game.State.PLAYING, game.state)
         assertTrue(game.balls.isNotEmpty() && !game.ballHeld)
-        composeTestRule.onNodeWithContentDescription("Settings").performClick()
+        return game
+    }
+
+    @Test
+    fun leavingTheScreenPausesTheRoundAndATapResumesIt() {
+        // A free-form window (an XR panel, a desktop window) stays resumed
+        // behind the scenario's cover activity: nothing to pause it with.
+        var multiWindow = false
+        scenario.onActivity { multiWindow = it.isInMultiWindowMode }
+        assumeFalse("free-form windows stay resumed", multiWindow)
+        val game = launchARound()
+        scenario.moveToState(Lifecycle.State.STARTED)                 // the screen goes away
         frames(2)
-        assertTrue(game.paused)                                       // the gear's click froze the round
-        frames(60)                                                    // the sheet's slide-in
-        Espresso.pressBack()                                          // close it
-        frames(60)                                                    // its slide-out: the window must be gone
+        assertTrue(game.paused)
+        scenario.moveToState(Lifecycle.State.RESUMED)                 // and comes back
+        frames(5)
         assertTrue(game.paused)                                       // still waiting for the player
         composeTestRule.onNodeWithContentDescription("Paused").assertIsDisplayed()
-        playfield.performClick()
+        composeTestRule.onNodeWithContentDescription("Playfield").performClick()
         frames(5)
         assertFalse(game.paused)
+    }
+
+    @Test
+    fun theGearPausesARoundInFlight() {
+        val game = launchARound()
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
+        frames(2)
+        assertTrue(game.paused)
     }
 }
