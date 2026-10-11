@@ -1,6 +1,9 @@
 package com.jpcottin.composebreakout.ui
 
 import android.content.Context
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import androidx.datastore.core.DataStore
@@ -16,9 +19,11 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.jpcottin.composebreakout.audio.AudioOutput
 import com.jpcottin.composebreakout.engine.Game
 import com.jpcottin.composebreakout.engine.GameHost
 import com.jpcottin.composebreakout.engine.HighScore
+import com.jpcottin.composebreakout.engine.SoundEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -33,8 +38,8 @@ data class Settings(
 
 /**
  * Owns the [Game] for the activity's lifetime (it survives rotation and
- * fold/unfold), persists settings and high scores, and is the [GameHost]
- * the engine talks to. A round in progress also survives process death:
+ * fold/unfold), persists settings and high scores, owns the audio output
+ * and the vibrator, and is the [GameHost] the engine talks to. A round in progress also survives process death:
  * level, score and lives go into the saved state, and the next instance
  * resumes them with a fresh wall. The frame loop lives in the composable
  * that draws the game; this class only exposes the engine and the
@@ -43,9 +48,13 @@ data class Settings(
 class GameViewModel(
     private val store: DataStore<Preferences>,
     savedState: SavedStateHandle,
+    private val vibrator: Vibrator?,
 ) : ViewModel(), GameHost {
 
     val game: Game = Game(host = this)
+
+    /** The synth and its speaker thread. Paused unless the activity is resumed. */
+    val audio = AudioOutput()
 
     /** Last persisted settings; the switches in the settings sheet edit these. */
     val settings = store.data.map { prefs ->
@@ -88,7 +97,21 @@ class GameViewModel(
         viewModelScope.launch { store.edit { it[KEY_AUTO_PLAY] = on } }
     }
 
+    override fun onCleared() {
+        audio.release()
+    }
+
     // ── GameHost ──────────────────────────────────────────────────────────────
+
+    override fun sound(event: SoundEvent) = audio.synth.trigger(event)
+    override fun brickBreak(hz: Float) = audio.synth.brickBreak(hz)
+    override fun music(on: Boolean) { audio.synth.musicEnabled = on }
+
+    override fun haptic() {
+        val v = vibrator ?: return
+        if (!v.hasVibrator()) return
+        v.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
+    }
 
     override fun highScoresChanged(table: List<HighScore>) {
         viewModelScope.launch { store.edit { it[KEY_HIGH_SCORES] = encodeScores(table) } }
@@ -117,7 +140,11 @@ class GameViewModel(
             }
 
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer { GameViewModel(context.applicationContext.settingsStore, createSavedStateHandle()) }
+            initializer {
+                val app = context.applicationContext
+                val vibrator = (app.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+                GameViewModel(app.settingsStore, createSavedStateHandle(), vibrator)
+            }
         }
     }
 }

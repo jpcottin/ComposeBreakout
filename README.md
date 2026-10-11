@@ -14,10 +14,10 @@ bench run on any JVM in seconds. Sibling of
 with a hand-written Vulkan renderer.
 
 > **Status:** the game is playable — ten levels, the four bonuses, the
-> high-score table, the end screens — Auto Play wins it, and it plays on a
-> phone, a foldable (open, closed or half-opened), a tablet, an XR panel
-> and a TV with a D-pad. The sounds and the glasses mode land in the next
-> pull requests.
+> high-score table, the end screens, sounds and haptics — Auto Play wins
+> it, and it plays on a phone, a foldable (open, closed or half-opened), a
+> tablet, an XR panel and a TV with a D-pad. The glasses mode lands in the
+> next pull request.
 
 ## The game
 
@@ -49,12 +49,21 @@ with a hand-written Vulkan renderer.
   reached. Predictions are cached per ball and redone only on a bounce.
   Capsules are collected when the detour leaves time to be back under the
   ball. The gear turns green while it plays.
+- **Sounds**, all synthesised in real time (no audio files): a bright blip
+  off the paddle, a dull tick off the walls, a click for a brick that holds
+  and a pitched pop for one that breaks — one semitone per row, the top
+  row highest, so the wall is a keyboard — a slide down for a lost ball, a
+  rising arpeggio for a cleared level, a sparkle for a bonus, a jingle for
+  an extra life, and a quiet ambient track (a pad, a bass on beats one and
+  three, an arpeggio) from the first serve to the end screen. A lost ball
+  is also a heavy click from the vibrator. The Sound switch silences all of
+  it.
 
 ## Modules
 
 | Module | What it is |
 |---|---|
-| `:engine` | The game: the world's geometry, the ten levels, the simulation (substepped collision, bonuses, scoring, high scores), the Auto Play autopilot. Pure Kotlin (`kotlin("jvm")`), no Android. JUnit tests; the bench is its `main` (`./gradlew :engine:run`). |
+| `:engine` | The game: the world's geometry, the ten levels, the simulation (substepped collision, bonuses, scoring, high scores), the Auto Play autopilot, and the synth that makes every sound. Pure Kotlin (`kotlin("jvm")`), no Android. JUnit tests; the bench is its `main` (`./gradlew :engine:run`). |
 | `:app` | The Compose shell: `MainActivity`, the `Canvas` playfield, Material 3 chrome, device traits, DataStore for settings and high scores, previews, screenshot tests, instrumented tests. |
 
 ## Tech
@@ -89,6 +98,14 @@ with a hand-written Vulkan renderer.
   A round in progress survives process death: the `ViewModel` registers a
   saved-state provider and the next instance resumes level, score and lives
   with a fresh wall.
+- **A synth, not samples** — the engine's `Synth` renders eight effect
+  voices and the ambient track into float blocks; the app's `AudioOutput`
+  pushes them to a low-latency mono `AudioTrack` at the device's native
+  rate from its own thread, paused with the activity through
+  `LifecycleResumeEffect`. The game thread only flips a bit mask, so it
+  never waits on audio. The synth's tests check every effect sounds and
+  ends, the brick pop carries its pitch, the mix never clips and the track
+  keeps its level after ten minutes.
 - **Chrome placed in world coordinates** — the HUD overlays (title, launch
   hint, level banner, end screens, bonus flash) use a layout modifier that
   puts an element's centre at a world point, the same mapping the canvas
