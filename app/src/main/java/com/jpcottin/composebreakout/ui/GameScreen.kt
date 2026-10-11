@@ -3,16 +3,20 @@ package com.jpcottin.composebreakout.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -20,13 +24,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.LongState
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,20 +38,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jpcottin.composebreakout.R
 import com.jpcottin.composebreakout.engine.Game
+import com.jpcottin.composebreakout.theme.AutoGreen
 import com.jpcottin.composebreakout.theme.OnSpaceMuted
 import com.jpcottin.composebreakout.theme.PaddleCyan
+import com.jpcottin.composebreakout.theme.PodiumColors
 import com.jpcottin.composebreakout.theme.TitleGold
 import com.jpcottin.composebreakout.theme.focusRing
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /** The whole game on one screen: the playfield, the chrome and the settings sheet. */
@@ -56,10 +66,12 @@ fun GameScreen(viewModel: GameViewModel) {
     val settings by viewModel.settings.collectAsStateWithLifecycle(initialValue = Settings())
     var showSettings by remember { mutableStateOf(false) }
     LogDeviceTraits()
+    // The clock stops while the sheet is up: a round waits for the player.
     GameScreen(
         game = viewModel.game,
         settings = settings,
         onOpenSettings = { showSettings = true },
+        paused = showSettings,
     )
     if (showSettings) {
         SettingsSheet(
@@ -84,8 +96,10 @@ fun GameScreen(
     modifier: Modifier = Modifier,
     paused: Boolean = false,
 ) {
-    var frame by remember { mutableLongStateOf(0L) }
-    var aspect by remember { mutableFloatStateOf(game.aspect) }
+    // The engine is a plain object, not Compose state: this counter is what
+    // tells Compose a step happened. Everything that shows engine state
+    // reads it (see [observe]) and so recomposes or redraws once per step.
+    val frame = remember { mutableLongStateOf(0L) }
 
     // The frame loop: one engine step per vsync, with the real elapsed time.
     LaunchedEffect(paused) {
@@ -95,30 +109,35 @@ fun GameScreen(
             withFrameNanos { now ->
                 if (last != 0L) game.update((now - last) / 1_000_000_000f)
                 last = now
-                frame++
+                frame.longValue++
             }
         }
     }
+    observe(frame)
 
     val farViewing = isFarViewing()
+    val noPointer = hasNoPointer()
     val chromePadding = if (farViewing) 48.dp else 16.dp   // overscan-safe on a TV
+    val textScale = if (farViewing) 1.5f else 1f
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .onSizeChanged { if (it.height > 0) { aspect = it.width.toFloat() / it.height; game.setAspect(aspect) } }
+            .onSizeChanged { if (it.height > 0) game.setAspect(it.width.toFloat() / it.height) }
             .pointerInput(game) {
                 // Every finger reaches the engine in world coordinates; the
-                // engine decides what a touch does from where it lands.
+                // engine decides what a touch does from where it lands. A
+                // change a button already consumed (the gear) is not a tap.
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
                         val asp = size.width.toFloat() / size.height
                         for (change in event.changes) {
+                            if (change.isConsumed) continue
                             val wx = (change.position.x / size.width * 2f - 1f) * asp
                             val wy = change.position.y / size.height * 2f - 1f
-                            val id = change.id.value.toInt() and 0xF
+                            val id = change.id.value.toInt()
                             when {
                                 change.changedToDown() -> game.onPointerDown(id, wx, wy)
                                 change.changedToUp() -> game.onPointerUp(id)
@@ -133,71 +152,240 @@ fun GameScreen(
     ) {
         PlayfieldCanvas(game, frame, Modifier.fillMaxSize())
 
-        if (game.state == Game.State.TITLE) TitleOverlay(game, frame, farViewing)
+        when (game.state) {
+            Game.State.TITLE -> TitleOverlay(game, frame, farViewing, noPointer, textScale)
+            Game.State.PLAYING, Game.State.LEVEL_CLEAR -> {
+                Hud(game, frame, chromePadding, textScale)
+                if (game.state == Game.State.LEVEL_CLEAR) LevelClearOverlay(game, frame, textScale)
+                else if (game.serveReady) LaunchHint(game, frame, noPointer, textScale)
+            }
+            Game.State.GAME_OVER -> EndScreen(game, frame, stringResource(R.string.game_over), Color(0x99990D14), textScale)
+            Game.State.WIN -> EndScreen(game, frame, stringResource(R.string.you_win), Color(0x99198026), textScale)
+        }
+        BonusFlash(game, frame, textScale)
 
-        // The gear, top-right, under the status bar.
-        val gearInteraction = remember { MutableInteractionSource() }
-        IconButton(
-            onClick = onOpenSettings,
-            interactionSource = gearInteraction,
+        // The gear, top-right, under the status bar; the AUTO badge beside it.
+        Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(chromePadding)
-                .focusRing(gearInteraction, CircleShape),
+                .padding(chromePadding),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Rounded.Settings,
-                contentDescription = stringResource(R.string.settings),
-                tint = if (settings.autoPlay) MaterialTheme.colorScheme.tertiary else OnSpaceMuted,
-            )
+            if (settings.autoPlay && game.isMidGame) {
+                Text(
+                    text = stringResource(R.string.auto_badge),
+                    style = MaterialTheme.typography.labelLarge.scaled(textScale),
+                    color = AutoGreen.copy(alpha = 0.55f + 0.4f * sin(game.animTime * 3.5f)),
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+            }
+            val gearInteraction = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = onOpenSettings,
+                interactionSource = gearInteraction,
+                modifier = Modifier.focusRing(gearInteraction, CircleShape),
+            ) {
+                Icon(
+                    Icons.Rounded.Settings,
+                    contentDescription = stringResource(R.string.settings),
+                    tint = if (settings.autoPlay) MaterialTheme.colorScheme.tertiary else OnSpaceMuted,
+                )
+            }
         }
     }
 }
 
+/** Reads the frame counter: the calling composable now recomposes every step. */
+@Suppress("UNUSED_EXPRESSION")
+private fun observe(frame: LongState) { frame.longValue }
+
 /**
- * The title: the name in the band between the demo wall and the bouncing
- * ball, the tap hint above the paddle. Both are placed by fractions of the
- * full height, like the world the canvas draws, so they land in the same
- * place whatever the insets or the screen.
+ * Places the element's centre at world point (wx, wy) inside its parent: the
+ * same mapping the canvas uses, so text and shapes line up on every screen
+ * whatever the insets.
  */
+private fun Modifier.atWorld(wx: Float, wy: Float): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+    val scale = constraints.maxHeight / 2f
+    val cx = constraints.maxWidth / 2f + wx * scale
+    val cy = constraints.maxHeight / 2f + wy * scale
+    layout(constraints.maxWidth, constraints.maxHeight) {
+        placeable.place((cx - placeable.width / 2f).roundToInt(), (cy - placeable.height / 2f).roundToInt())
+    }
+}
+
+/** The style with every specified size multiplied by [k] (the TV reads from across the room). */
+private fun TextStyle.scaled(k: Float): TextStyle =
+    if (k == 1f) this else copy(
+        fontSize = if (fontSize.isSpecified) fontSize * k else fontSize,
+        letterSpacing = if (letterSpacing.isSpecified) letterSpacing * k else letterSpacing,
+        lineHeight = if (lineHeight.isSpecified) lineHeight * k else lineHeight,
+    )
+
+/** The title: the name in the band between the demo wall and the bouncing
+ *  ball, the podium under it, the tap hint above the paddle. */
 @Composable
-private fun TitleOverlay(game: Game, frame: Long, farViewing: Boolean) {
-    @Suppress("UNUSED_VARIABLE") val tick = frame
+private fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, noPointer: Boolean, textScale: Float) {
+    observe(frame)
     val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val titleTop = maxHeight * TITLE_TOP_FRACTION
-        val hintTop = maxHeight * HINT_TOP_FRACTION
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = titleTop),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "COMPOSE",
-                style = MaterialTheme.typography.titleLarge,
-                color = PaddleCyan,
-            )
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.atWorld(0f, -0.36f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "COMPOSE", style = MaterialTheme.typography.titleLarge.scaled(textScale), color = PaddleCyan)
             Text(
                 text = stringResource(R.string.title_line),
                 style = if (farViewing) MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp)
                         else MaterialTheme.typography.displayLarge,
                 color = TitleGold,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
             )
         }
+        // High-score podium: top three, gold / silver / bronze.
+        if (game.highScores.isNotEmpty()) {
+            Column(Modifier.atWorld(0f, 0.17f), horizontalAlignment = Alignment.CenterHorizontally) {
+                for ((i, hs) in game.highScores.take(3).withIndex()) {
+                    val c = PodiumColors[i]
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                        Box(Modifier.size(width = 24.dp * textScale, height = 6.dp * textScale).background(c, RoundedCornerShape(3.dp)))
+                        Spacer(Modifier.width(16.dp))
+                        Text(text = "%,d".format(hs.score), style = MaterialTheme.typography.titleLarge.scaled(textScale), color = c)
+                        Spacer(Modifier.width(24.dp))
+                        Text(text = "L${hs.level}", style = MaterialTheme.typography.titleMedium.scaled(textScale), color = c.copy(alpha = 0.8f))
+                    }
+                }
+            }
+        }
         Text(
-            text = if (hasNoPointer()) stringResource(R.string.press_to_play) else stringResource(R.string.tap_to_play),
-            style = MaterialTheme.typography.titleMedium,
+            text = if (noPointer) stringResource(R.string.press_to_play) else stringResource(R.string.tap_to_play),
+            style = MaterialTheme.typography.titleMedium.scaled(textScale),
             color = Color.White.copy(alpha = 0.4f + 0.5f * pulse),
-            modifier = Modifier.align(Alignment.TopCenter).offset(y = hintTop),
+            modifier = Modifier.atWorld(0f, 0.44f),
         )
     }
 }
 
-/** The title block starts just under the demo wall (world y -0.52). */
-private const val TITLE_TOP_FRACTION = 0.24f
-/** The tap hint sits above the paddle line (world y 0.40). */
-private const val HINT_TOP_FRACTION = 0.70f
+/** Score, lives and level in the band above the ceiling. */
+@Composable
+private fun Hud(game: Game, frame: LongState, chromePadding: androidx.compose.ui.unit.Dp, textScale: Float) {
+    observe(frame)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(horizontal = chromePadding, vertical = 6.dp)
+            .padding(end = 48.dp)   // the gear's column
+            .semantics { contentDescription = "HUD" },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val scoreLabel = stringResource(R.string.hud_score)
+        Text(
+            text = "%,d".format(game.score),
+            style = MaterialTheme.typography.headlineMedium.scaled(textScale),
+            color = Color.White,
+            modifier = Modifier.semantics { contentDescription = "$scoreLabel ${game.score}" },
+        )
+        Spacer(Modifier.weight(1f))
+        val livesLabel = stringResource(R.string.hud_lives)
+        Row(Modifier.semantics { contentDescription = "$livesLabel ${game.lives}" }) {
+            repeat(game.lives) {
+                Box(
+                    Modifier
+                        .padding(horizontal = 3.dp * textScale)
+                        .size(width = 18.dp * textScale, height = 5.dp * textScale)
+                        .background(PaddleCyan, RoundedCornerShape(3.dp)),
+                )
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        val levelLabel = stringResource(R.string.hud_level)
+        Text(
+            text = "${game.level}",
+            style = MaterialTheme.typography.headlineMedium.scaled(textScale),
+            color = TitleGold,
+            modifier = Modifier.semantics { contentDescription = "$levelLabel ${game.level}" },
+        )
+    }
+}
+
+/** A served ball waits for a tap. */
+@Composable
+private fun LaunchHint(game: Game, frame: LongState, noPointer: Boolean, textScale: Float) {
+    observe(frame)
+    val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
+    Text(
+        text = if (noPointer) stringResource(R.string.press_to_launch) else stringResource(R.string.tap_to_launch),
+        style = MaterialTheme.typography.labelLarge.scaled(textScale),
+        color = Color(0xFFA6CCFF).copy(alpha = 0.4f + 0.5f * pulse),
+        modifier = Modifier.atWorld(0f, 0.45f),
+    )
+}
+
+/** The level just cleared, big and green, for the pause before the next one. */
+@Composable
+private fun LevelClearOverlay(game: Game, frame: LongState, textScale: Float) {
+    observe(frame)
+    Column(Modifier.atWorld(0f, -0.10f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = stringResource(R.string.level_clear),
+            style = MaterialTheme.typography.headlineMedium.scaled(textScale),
+            color = AutoGreen,
+        )
+        Text(
+            text = "${game.level}",
+            style = MaterialTheme.typography.displayLarge.copy(fontSize = 160.sp * textScale, letterSpacing = 0.sp),
+            color = AutoGreen,
+        )
+    }
+}
+
+/** GAME OVER / WIN share one layout: tinted overlay, big score, the rank
+ *  when it is a new high score, the title pulsing under it. */
+@Composable
+private fun EndScreen(game: Game, frame: LongState, title: String, tint: Color, textScale: Float) {
+    observe(frame)
+    val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
+    Box(Modifier.fillMaxSize().background(tint.copy(alpha = tint.alpha * (0.7f + 0.3f * pulse)))) {
+        if (game.newHighScore && game.newHighScoreRank in 0..2) {
+            val c = PodiumColors[game.newHighScoreRank]
+            Column(Modifier.atWorld(0f, -0.42f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "#${game.newHighScoreRank + 1}",
+                    style = MaterialTheme.typography.displayMedium.scaled(textScale),
+                    color = c.copy(alpha = 0.65f + 0.35f * pulse),
+                )
+                Text(
+                    text = stringResource(R.string.new_high_score),
+                    style = MaterialTheme.typography.labelLarge.scaled(textScale),
+                    color = c,
+                )
+            }
+        }
+        val scoreColor = if (game.newHighScore) TitleGold.copy(alpha = 0.8f + 0.2f * pulse) else Color.White
+        Text(
+            text = "%,d".format(game.score),
+            style = MaterialTheme.typography.displayLarge.copy(fontSize = 64.sp * textScale),
+            color = scoreColor,
+            maxLines = 1,
+            modifier = Modifier.atWorld(0f, -0.05f).semantics { contentDescription = "Final score ${game.score}" },
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium.scaled(textScale),
+            color = Color.White.copy(alpha = 0.5f + 0.5f * pulse),
+            modifier = Modifier.atWorld(0f, 0.30f),
+        )
+    }
+}
+
+/** The points a bonus just earned, fading where they were earned. */
+@Composable
+private fun BonusFlash(game: Game, frame: LongState, textScale: Float) {
+    observe(frame)
+    if (game.bonusFlashTimer <= 0f) return
+    Text(
+        text = "+${game.bonusFlash}",
+        style = MaterialTheme.typography.titleLarge.scaled(textScale),
+        color = TitleGold.copy(alpha = (game.bonusFlashTimer / Game.BONUS_FLASH_TIME).coerceIn(0f, 1f)),
+        modifier = Modifier.atWorld(game.bonusFlashX, game.bonusFlashY),
+    )
+}

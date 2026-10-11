@@ -13,17 +13,33 @@ bench run on any JVM in seconds. Sibling of
 [VulkanBreakout](https://github.com/jpcottin/VulkanBreakout), the same game
 with a hand-written Vulkan renderer.
 
-> **Status:** this is the project skeleton — the two modules, the theme, the
-> playfield canvas drawing the title demo, the settings sheet, device traits,
-> the icon, tests and CI. The gameplay, the Auto Play autopilot, the adaptive
+> **Status:** the game is playable — ten levels, the four bonuses, the
+> high-score table, the end screens. The Auto Play autopilot, the adaptive
 > inputs (D-pad, tabletop), the sounds and the glasses mode land in the next
 > pull requests.
+
+## The game
+
+- **Ten levels**, easy to hard: 4 rows of bricks at level 1, 9 at level 10,
+  the ball a little faster each level and faster still as the wall thins.
+  Tough bricks (two hits) arrive at level 3, steel (never breaks, does not
+  count) at level 5, armour (three hits) at level 7.
+- **Controls:** the strip below the paddle steers — the paddle slides toward
+  the finger — and any tap launches the ball resting on the paddle. The
+  bounce angle follows where the ball meets the paddle: centre sends it up,
+  the tips 65 degrees out. That is the aim.
+- **Bonuses** drop from broken bricks: a wide paddle (10 s), a slow ball
+  (8 s), multi-ball (every ball splits in three, up to six) and an extra
+  life (up to nine). Five lives to start.
+- **Scoring:** 10 / 20 / 30 points per brick kind times the level, 25 times
+  the level per bonus, 100 times the level per cleared wall. The top five
+  scores are kept; the top three show on the title screen.
 
 ## Modules
 
 | Module | What it is |
 |---|---|
-| `:engine` | The game: the world, the simulation, the Auto Play autopilot. Pure Kotlin (`kotlin("jvm")`), no Android. JUnit tests; the bench is its `main` (`./gradlew :engine:run`). |
+| `:engine` | The game: the world's geometry, the ten levels, the simulation (substepped collision, bonuses, scoring, high scores), the Auto Play autopilot. Pure Kotlin (`kotlin("jvm")`), no Android. JUnit tests; the bench is its `main` (`./gradlew :engine:run`). |
 | `:app` | The Compose shell: `MainActivity`, the `Canvas` playfield, Material 3 chrome, device traits, DataStore for settings and high scores, previews, screenshot tests, instrumented tests. |
 
 ## Tech
@@ -49,6 +65,13 @@ with a hand-written Vulkan renderer.
   margins, rather than a wall three times wider than a paddle can cover.
 - **DataStore** for settings and the high-score table; the engine reports
   changes through a `GameHost` interface and never touches storage itself.
+  A round in progress survives process death: the `ViewModel` registers a
+  saved-state provider and the next instance resumes level, score and lives
+  with a fresh wall.
+- **Chrome placed in world coordinates** — the HUD overlays (title, launch
+  hint, level banner, end screens, bonus flash) use a layout modifier that
+  puts an element's centre at a world point, the same mapping the canvas
+  uses, so text and shapes line up on every screen whatever the insets.
 - **An icon that is the game** — adaptive launcher icon (bricks with a gloss,
   the ball mid-bounce with its trail, the paddle), a monochrome layer for
   themed icons, and a TV banner with the name set in a bitmap block font.
@@ -72,9 +95,16 @@ adb shell am start -n com.jpcottin.composebreakout/.MainActivity
 ./gradlew :app:connectedDebugAndroidTest     # instrumented tests on a device or emulator
 ```
 
-The screenshot tests render the `@Preview`s in `app/src/screenshotTest`
-(phone, foldable, tablet, TV, the settings sheet) and compare them with the
-references committed under `app/src/screenshotTestDebug/reference`.
+The screenshot tests render the `@Preview`s in `app/src/screenshotTest` —
+every screen of the game (title, in play, served ball, level clear, game
+over, win, settings) on phone, foldable, tablet and TV — and compare them
+with the references committed under `app/src/screenshotTestDebug/reference`.
+The engine is seeded and stepped deterministically, so each preview is the
+same picture every time.
+
+The instrumented test drives the real activity with a paused test clock
+(the game steps once per frame for as long as it is on screen, which the
+Compose test harness would otherwise read as "never idle").
 
 ## CI/CD
 
