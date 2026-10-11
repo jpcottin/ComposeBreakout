@@ -76,9 +76,9 @@ private fun winGame(aspect: Float): Game = Game().apply {
 }
 
 @Composable
-private fun Screen(game: Game, autoPlay: Boolean = false) {
+private fun Screen(game: Game, autoPlay: Boolean = false, tabletop: Boolean = false) {
     BreakoutTheme {
-        GameScreen(game = game, settings = Settings(autoPlay = autoPlay), onOpenSettings = {}, paused = true)
+        GameScreen(game = game, settings = Settings(autoPlay = autoPlay), onOpenSettings = {}, paused = true, tabletop = tabletop)
     }
 }
 
@@ -125,6 +125,12 @@ fun PlayingFoldableScreenshot() = Screen(playingGame(FOLDABLE))
 @Preview(name = "Playing TV", device = Devices.TV_1080p, showBackground = true, uiMode = Configuration.UI_MODE_TYPE_TELEVISION)
 @Composable
 fun PlayingTvScreenshot() = Screen(playingGame(TV))
+
+/** A foldable half-opened: the playfield above the hinge, the control surface below. */
+@PreviewTest
+@Preview(name = "Tabletop foldable", device = Devices.FOLDABLE, showBackground = true)
+@Composable
+fun PlayingTabletopScreenshot() = Screen(playingGame(673f / 420f), tabletop = true)
 
 @PreviewTest
 @Preview(name = "Level clear", device = Devices.PHONE, showBackground = true)

@@ -1,6 +1,8 @@
 package com.jpcottin.composebreakout.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -34,7 +37,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -51,7 +64,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jpcottin.composebreakout.R
 import com.jpcottin.composebreakout.engine.Game
+import com.jpcottin.composebreakout.engine.World
 import com.jpcottin.composebreakout.theme.AutoGreen
+import com.jpcottin.composebreakout.theme.LaneLine
 import com.jpcottin.composebreakout.theme.OnSpaceMuted
 import com.jpcottin.composebreakout.theme.PaddleCyan
 import com.jpcottin.composebreakout.theme.PodiumColors
@@ -72,6 +87,7 @@ fun GameScreen(viewModel: GameViewModel) {
         settings = settings,
         onOpenSettings = { showSettings = true },
         paused = showSettings,
+        tabletop = isTabletopPosture(),
     )
     if (showSettings) {
         SettingsSheet(
@@ -85,8 +101,11 @@ fun GameScreen(viewModel: GameViewModel) {
 
 /**
  * The stateless screen: drives the engine at the display's frame rate while
- * it is composed, maps touches into the world, and lays the chrome over the
- * playfield. [paused] stops the clock (previews, screenshot tests).
+ * it is composed, maps touches and keys into the world, and lays the chrome
+ * over the playfield. [paused] stops the clock (previews, screenshot tests,
+ * the settings sheet). In the [tabletop] posture (a foldable half-opened,
+ * the hinge across the middle) the playfield takes the upper half and a
+ * control surface the lower half, so the fold never cuts through the game.
  */
 @Composable
 fun GameScreen(
@@ -95,6 +114,7 @@ fun GameScreen(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     paused: Boolean = false,
+    tabletop: Boolean = false,
 ) {
     // The engine is a plain object, not Compose state: this counter is what
     // tells Compose a step happened. Everything that shows engine state
@@ -120,11 +140,45 @@ fun GameScreen(
     val chromePadding = if (farViewing) 48.dp else 16.dp   // overscan-safe on a TV
     val textScale = if (farViewing) 1.5f else 1f
 
+    // Keys and the D-pad: the playfield holds focus while the game runs and
+    // takes it back when the settings sheet closes. Up from the playfield
+    // reaches the gear; down from the gear comes back.
+    val playfieldFocus = remember { FocusRequester() }
+    val gearFocus = remember { FocusRequester() }
+    LaunchedEffect(paused) { if (!paused) runCatching { playfieldFocus.requestFocus() } }
+
+    val content: @Composable (Modifier) -> Unit = { playfieldModifier ->
     Box(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = playfieldModifier
             .background(MaterialTheme.colorScheme.background)
             .onSizeChanged { if (it.height > 0) game.setAspect(it.width.toFloat() / it.height) }
+            .focusRequester(playfieldFocus)
+            .focusable()
+            .onKeyEvent { event ->
+                val steer = when (event.key) {
+                    Key.DirectionLeft, Key.A -> -1
+                    Key.DirectionRight, Key.D -> 1
+                    else -> 0
+                }
+                when {
+                    steer != 0 -> {
+                        when (event.type) {
+                            KeyEventType.KeyDown -> game.setSteer(steer)
+                            KeyEventType.KeyUp -> game.setSteer(0)
+                        }
+                        true
+                    }
+                    event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter ||
+                        event.key == Key.Spacebar || event.key == Key.ButtonA -> {
+                        if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) game.tap()
+                        true
+                    }
+                    event.key == Key.DirectionUp && event.type == KeyEventType.KeyDown -> {
+                        gearFocus.requestFocus(); true
+                    }
+                    else -> false
+                }
+            }
             .pointerInput(game) {
                 // Every finger reaches the engine in world coordinates; the
                 // engine decides what a touch does from where it lands. A
@@ -172,6 +226,7 @@ fun GameScreen(
                 .padding(chromePadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            @Suppress("UNUSED_EXPRESSION") frame.longValue
             if (settings.autoPlay && game.isMidGame) {
                 Text(
                     text = stringResource(R.string.auto_badge),
@@ -184,7 +239,14 @@ fun GameScreen(
             IconButton(
                 onClick = onOpenSettings,
                 interactionSource = gearInteraction,
-                modifier = Modifier.focusRing(gearInteraction, CircleShape),
+                modifier = Modifier
+                    .focusRequester(gearFocus)
+                    .onKeyEvent { event ->
+                        if (event.key == Key.DirectionDown && event.type == KeyEventType.KeyDown) {
+                            playfieldFocus.requestFocus(); true
+                        } else false
+                    }
+                    .focusRing(gearInteraction, CircleShape),
             ) {
                 Icon(
                     Icons.Rounded.Settings,
@@ -194,7 +256,79 @@ fun GameScreen(
             }
         }
     }
+    }
+
+    if (tabletop) {
+        Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            content(Modifier.fillMaxWidth().weight(1f))
+            ControlSurface(game, frame, Modifier.fillMaxWidth().weight(1f))
+        }
+    } else {
+        content(modifier.fillMaxSize())
+    }
 }
+
+/**
+ * The lower half of a half-opened foldable: a steering surface the size of a
+ * hand. A finger anywhere on it steers the paddle toward the finger's x, a
+ * tap launches — it is the control strip, grown to fill the lower screen.
+ */
+@Composable
+private fun ControlSurface(game: Game, frame: LongState, modifier: Modifier = Modifier) {
+    observe(frame)
+    val held = game.moveHeld
+    Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surface)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .pointerInput(game) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        for (change in event.changes) {
+                            if (change.isConsumed) continue
+                            // The surface spans the playfield's width: its x
+                            // is the playfield's x, its y is the strip.
+                            val wx = (change.position.x / size.width * 2f - 1f) * game.aspect
+                            val id = change.id.value.toInt() + CONTROL_SURFACE_POINTER_BASE
+                            when {
+                                change.changedToDown() -> game.onPointerDown(id, wx, CONTROL_SURFACE_Y)
+                                change.changedToUp() -> game.onPointerUp(id)
+                                change.pressed -> game.onPointerMove(id, wx, CONTROL_SURFACE_Y)
+                            }
+                            change.consume()
+                        }
+                    }
+                }
+            }
+            .semantics { contentDescription = "Control surface" },
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            // The steering marker, under the paddle: where the finger acts.
+            val scale = size.width / (2f * game.aspect)
+            val cx = size.width / 2f + game.paddleX * scale
+            val w = game.paddleHalfWidth * scale
+            val h = size.height * 0.06f
+            drawLine(LaneLine.copy(alpha = 0.30f), Offset(0f, 0f), Offset(size.width, 0f), strokeWidth = 3f)
+            drawRoundRect(
+                PaddleCyan.copy(alpha = if (held) 0.9f else 0.45f),
+                Offset(cx - w, size.height / 2f - h / 2f), Size(2f * w, h), CornerRadius(h / 2f),
+            )
+        }
+        Text(
+            text = stringResource(R.string.slide_to_steer),
+            style = MaterialTheme.typography.labelLarge,
+            color = OnSpaceMuted,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp),
+        )
+    }
+}
+
+/** Pointers from the control surface get their own ids, so a finger there
+ *  and one on the playfield never share a slot. */
+private const val CONTROL_SURFACE_POINTER_BASE = 1_000_000
+/** The control surface acts like the strip: its touches land in it. */
+private const val CONTROL_SURFACE_Y = (World.STRIP_TOP_Y + 1f) / 2f
 
 /** Reads the frame counter: the calling composable now recomposes every step. */
 @Suppress("UNUSED_EXPRESSION")
