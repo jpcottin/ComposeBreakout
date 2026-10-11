@@ -33,6 +33,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <!-- A free-form window (an Android XR panel, a desktop window)
+                 opens portrait, the shape of a phone: the lane fills it
+                 instead of sitting between two dead margins. -->
+            <layout
+                android:defaultWidth="540dp"
+                android:defaultHeight="960dp"
+                android:minWidth="320dp"
+                android:minHeight="480dp"
+                android:gravity="center" />
         </activity>
 
         <!-- The same game on a paired pair of AI Glasses (Settings -> Glasses):
