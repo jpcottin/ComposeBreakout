@@ -68,9 +68,9 @@ jobs:
           - name: foldable API 36
             api-level: 36
             target: google_apis
-            profile: pixel_fold
-          - name: TV API 34
-            api-level: 34
+            profile: 7.6in Foldable
+          - name: TV API 36
+            api-level: 36
             target: android-tv
             profile: tv_1080p
 
@@ -97,7 +97,7 @@ jobs:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
           target: ${{ matrix.target }}
-          profile: ${{ matrix.profile }}
+          profile: "${{ matrix.profile }}"
           force-avd-creation: true
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -verbose -show-kernel -debug-metrics -metrics-collection
           disable-animations: true

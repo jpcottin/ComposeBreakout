@@ -3,11 +3,12 @@ package com.jpcottin.composebreakout.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -154,40 +155,49 @@ fun GameScreen(
     }
 }
 
-/** The title: the name over the demo wall, the tap hint pulsing under it. */
+/**
+ * The title: the name in the band between the demo wall and the bouncing
+ * ball, the tap hint above the paddle. Both are placed by fractions of the
+ * full height, like the world the canvas draws, so they land in the same
+ * place whatever the insets or the screen.
+ */
 @Composable
 private fun TitleOverlay(game: Game, frame: Long, farViewing: Boolean) {
     @Suppress("UNUSED_VARIABLE") val tick = frame
     val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "COMPOSE",
-            style = MaterialTheme.typography.titleLarge,
-            color = PaddleCyan,
-            modifier = Modifier.padding(top = 20.dp),
-        )
-        // The name sits in the empty band between the demo wall and the
-        // bouncing ball: 29% of the height down, whatever the screen.
-        Spacer(Modifier.weight(0.29f))
-        Text(
-            text = stringResource(R.string.title_line),
-            style = if (farViewing) MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp)
-                    else MaterialTheme.typography.displayLarge,
-            color = TitleGold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.weight(0.71f))
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val titleTop = maxHeight * TITLE_TOP_FRACTION
+        val hintTop = maxHeight * HINT_TOP_FRACTION
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = titleTop),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "COMPOSE",
+                style = MaterialTheme.typography.titleLarge,
+                color = PaddleCyan,
+            )
+            Text(
+                text = stringResource(R.string.title_line),
+                style = if (farViewing) MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp)
+                        else MaterialTheme.typography.displayLarge,
+                color = TitleGold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Text(
             text = if (hasNoPointer()) stringResource(R.string.press_to_play) else stringResource(R.string.tap_to_play),
             style = MaterialTheme.typography.titleMedium,
             color = Color.White.copy(alpha = 0.4f + 0.5f * pulse),
-            modifier = Modifier.padding(bottom = 140.dp),
+            modifier = Modifier.align(Alignment.TopCenter).offset(y = hintTop),
         )
     }
 }
+
+/** The title block starts just under the demo wall (world y -0.52). */
+private const val TITLE_TOP_FRACTION = 0.24f
+/** The tap hint sits above the paddle line (world y 0.40). */
+private const val HINT_TOP_FRACTION = 0.70f

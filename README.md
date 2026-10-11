@@ -84,7 +84,7 @@ merges.
 | Job | What it does | Artifacts |
 |-----|-------------|-----------|
 | **Build, lint, tests, screenshots** | Engine JUnit tests, Android lint, app unit tests, Compose preview screenshot validation, debug APK | `debug-apk`, `screenshot-test-report` on failure |
-| **Instrumented** | Launches the activity on three emulators — a phone (API 34), a foldable (API 36, `pixel_fold`) and a TV (API 34, `android-tv`) — and checks the title and the settings sheet | test report on failure |
+| **Instrumented** | Launches the activity on three emulators — a phone (API 34), a foldable (API 36, `7.6in Foldable`) and a TV (API 36, `android-tv`) — and checks the title and the settings sheet | test report on failure |
 
 ## License
 
