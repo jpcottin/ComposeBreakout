@@ -140,13 +140,15 @@ jobs:
             gpu: lavapipe
             ram-size: 2048M
             memory: 2048
-          # The XR image renders through Vulkan; with no GPU on the runner
-          # only lavapipe (a software Vulkan device) lets it boot.
+          # The XR image insists on a hardware GPU (its XR mode UI and guest
+          # ANGLE need one) and refuses to boot without: with those two
+          # features off it boots on lavapipe, the software Vulkan device.
           - name: XR headset API 34
             api-level: '34'
             target: google-xr
             profile: xr_headset_device
             gpu: lavapipe
+            extra-options: -feature -XrModeUI -feature -GuestAngle
             ram-size: 4096M
             memory: 4096
             cores: 4
@@ -270,7 +272,7 @@ jobs:
           cores: ${{ matrix.cores }}
           disk-size: 8192M
           emulator-boot-timeout: 900
-          emulator-options: -no-snapshot -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none -memory ${{ matrix.memory }} -delay-adb -verbose -show-kernel -debug-metrics -metrics-collection
+          emulator-options: -no-snapshot -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none -memory ${{ matrix.memory }} -delay-adb -verbose -show-kernel -debug-metrics -metrics-collection ${{ matrix.extra-options || '' }}
           disable-animations: true
           script: |
             echo "===== AVD root ini ====="; cat "$HOME/.android/avd/test.ini" 2>/dev/null || echo "(test.ini not found)"
