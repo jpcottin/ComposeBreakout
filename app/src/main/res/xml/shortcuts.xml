@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the launcher icon: a round the autopilot plays on its own. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="autoplay"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_autoplay"
+        android:shortcutShortLabel="@string/shortcut_autoplay_short"
+        android:shortcutLongLabel="@string/shortcut_autoplay_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.jpcottin.composebreakout"
+            android:targetClass="com.jpcottin.composebreakout.MainActivity">
+            <extra android:name="autoplay" android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>

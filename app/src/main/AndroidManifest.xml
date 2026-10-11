@@ -33,6 +33,10 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <!-- Long-press menu on the launcher icon -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
             <!-- A free-form window (an Android XR panel, a desktop window)
                  opens portrait, the shape of a phone: the lane fills it
                  instead of sitting between two dead margins. -->
