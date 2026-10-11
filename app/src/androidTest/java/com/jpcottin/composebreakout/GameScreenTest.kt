@@ -144,6 +144,25 @@ class GameScreenTest {
         assertEquals(held, game.paddleX, 1e-6f)                      // released: it stays
     }
 
+    @Test
+    fun theDpadCentreStartsTheRoundThenLaunchesTheBall() {
+        // On a TV the same button starts the round and, once the serve
+        // delay is over, launches the ball resting on the paddle.
+        frames(5)
+        val playfield = focusThePlayfield()
+        playfield.performKeyInput { keyDown(Key.DirectionCenter); keyUp(Key.DirectionCenter) }
+        val game = game()
+        stepUntil(10) { game.state == Game.State.PLAYING }
+        assertEquals(Game.State.PLAYING, game.state)
+        assertTrue(game.ballHeld)                                     // served, waiting
+        frames(40)                                                    // past the serve delay
+        assertTrue(game.ballHeld)                                     // still waiting: nothing launched it
+        playfield.performKeyInput { keyDown(Key.DirectionCenter); keyUp(Key.DirectionCenter) }
+        stepUntil(10) { !game.ballHeld }
+        assertTrue("OK should have launched the ball", !game.ballHeld)
+        assertEquals(0f, game.paddleX, 1e-6f)                          // the key launched, not steered
+    }
+
     /** A round in flight: the HUD up, the ball launched. */
     private fun launchARound(): Game {
         frames(5)
