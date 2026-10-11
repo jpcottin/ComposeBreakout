@@ -25,12 +25,24 @@ for d in sys.argv[1:]:
             if suite is None:
                 continue
         name = suite.get("name", os.path.basename(path)).split(".")[-1]
-        tests = int(suite.get("tests", 0)); fails = int(suite.get("failures", 0))
-        errors = int(suite.get("errors", 0)); skipped = int(suite.get("skipped", 0))
+        tests = ok = failed = skipped = 0
+        for case in suite.iter("testcase"):
+            tests += 1
+            problem = case.find("failure") if case.find("failure") is not None else case.find("error")
+            if case.find("skipped") is not None:
+                skipped += 1
+            elif problem is not None:
+                # The Android runner files a test that bailed on an
+                # assumption (assumeFalse) as a failure; it is a skip.
+                if "AssumptionViolatedException" in (problem.text or "") + (problem.get("type") or ""):
+                    skipped += 1
+                else:
+                    failed += 1
+            else:
+                ok += 1
         secs = float(suite.get("time", 0) or 0)
-        ok = tests - fails - errors - skipped
-        mark = "✅" if fails + errors == 0 else "❌"
-        rows.append(f"| {mark} {name} | {tests} | {ok} | {fails + errors} | {skipped} | {secs:.1f} s |")
+        mark = "✅" if failed == 0 else "❌"
+        rows.append(f"| {mark} {name} | {tests} | {ok} | {failed} | {skipped} | {secs:.1f} s |")
 print("| Suite | Tests | Passed | Failed | Skipped | Time |")
 print("|---|---:|---:|---:|---:|---:|")
 print("\n".join(rows) if rows else "| (no results found) | | | | | |")
