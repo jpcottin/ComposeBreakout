@@ -725,8 +725,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      # The release build (R8-shrunk, resources shrunk) is what ships; this
+      # is the one job that plays it on a device rather than the debug build.
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Install Android CLI
         run: |
@@ -776,7 +778,7 @@ jobs:
           export PATH="$SDK/platform-tools:$PATH"
           PKG=com.jpcottin.composebreakout
           ACT=com.jpcottin.composebreakout.MainActivity
-          APK=app/build/outputs/apk/debug/app-debug.apk
+          APK=app/build/outputs/apk/release/app-release.apk
           WS="${{ github.workspace }}"
           mkdir -p "$WS/screenshots"
           LAST_SCORE=-1
