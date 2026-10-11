@@ -52,6 +52,8 @@ import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -177,7 +179,16 @@ fun GameScreen(
     val farViewing = isFarViewing()
     val noPointer = hasNoPointer()
     val chromePadding = if (farViewing) 48.dp else 16.dp   // overscan-safe on a TV
-    val textScale = if (farViewing) 1.5f else 1f
+    // The overlays sit at world heights, so a short window (the glasses'
+    // 360 dp display, a phone on its side, a half-opened foldable whose
+    // upper half is the playfield) squeezes them together: smaller text.
+    val density = LocalDensity.current
+    val windowHeightDp = LocalWindowInfo.current.containerSize.height / density.density
+    val textScale = when {
+        farViewing -> 1.5f
+        windowHeightDp in 1f..SHORT_WINDOW_DP -> 0.7f
+        else -> 1f
+    }
 
     // Keys and the D-pad: the playfield holds focus while the game runs and
     // takes it back when the settings sheet closes. Up from the playfield
@@ -395,3 +406,5 @@ private const val CONTROL_SURFACE_POINTER_BASE = 1_000_000
 /** The control surface acts like the strip: its touches land in it. */
 private const val CONTROL_SURFACE_Y = (World.STRIP_TOP_Y + 1f) / 2f
 
+/** Up to this window height the overlays use smaller text. */
+private const val SHORT_WINDOW_DP = 480f
