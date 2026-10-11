@@ -38,5 +38,12 @@
     <string name="touch_to_resume">TOUCH TO RESUME</string>
     <string name="shortcut_autoplay_short">Auto Play</string>
     <string name="shortcut_autoplay_long">Watch the autopilot play</string>
+    <string name="a11y_field_state">Level %1$d, %2$d bricks left, %3$d lives</string>
+    <string name="a11y_level_start">Level %1$d begins</string>
+    <string name="a11y_level_clear">Level %1$d cleared</string>
+    <string name="a11y_ball_lost">Ball lost, %1$d lives left</string>
+    <string name="a11y_game_over">Game over, score %1$d</string>
+    <string name="a11y_win">You win, score %1$d</string>
+    <string name="a11y_paused">Game paused</string>
     <string name="display_category_xr_projected" translatable="false">xr_projected</string>
 </resources>

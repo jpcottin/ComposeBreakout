@@ -54,7 +54,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -163,8 +166,6 @@ fun GameScreen(
             }
         }
     }
-    observe(frame)
-
     val farViewing = isFarViewing()
     val noPointer = hasNoPointer()
     val chromePadding = if (farViewing) 48.dp else 16.dp   // overscan-safe on a TV
@@ -178,6 +179,11 @@ fun GameScreen(
     LaunchedEffect(paused) { if (!paused) runCatching { playfieldFocus.requestFocus() } }
 
     val background = if (glasses) Color.Black else MaterialTheme.colorScheme.background
+    // What a screen reader says the field is, read once per step.
+    observe(frame)
+    val fieldState = if (game.isMidGame)
+        stringResource(R.string.a11y_field_state, game.level, game.breakableLeft, game.lives)
+    else ""
     val content: @Composable (Modifier) -> Unit = { playfieldModifier ->
     Box(
         modifier = playfieldModifier
@@ -233,9 +239,13 @@ fun GameScreen(
                     }
                 }
             }
-            .semantics { contentDescription = "Playfield" },
+            .semantics {
+                contentDescription = "Playfield"
+                stateDescription = fieldState
+            },
     ) {
         PlayfieldCanvas(game, frame, Modifier.fillMaxSize())
+        Announcer(game, frame)
 
         val hint = if (glasses) InputHint.TOUCHBAR else if (noPointer) InputHint.KEYS else InputHint.TOUCH
         when (game.state) {
@@ -355,6 +365,72 @@ private fun ControlSurface(game: Game, frame: LongState, modifier: Modifier = Mo
 private const val CONTROL_SURFACE_POINTER_BASE = 1_000_000
 /** The control surface acts like the strip: its touches land in it. */
 private const val CONTROL_SURFACE_Y = (World.STRIP_TOP_Y + 1f) / 2f
+
+/**
+ * The round's events for a screen reader: a polite live region whose text
+ * changes when a level starts or is cleared, a ball is lost, the game ends
+ * or pauses. It draws nothing. The text only changes on an event, so a
+ * reader says each thing once.
+ */
+@Composable
+private fun Announcer(game: Game, frame: LongState) {
+    observe(frame)
+    val levelStart = stringResource(R.string.a11y_level_start, game.level)
+    val levelClear = stringResource(R.string.a11y_level_clear, game.level)
+    val ballLost = stringResource(R.string.a11y_ball_lost, game.lives)
+    val gameOver = stringResource(R.string.a11y_game_over, game.score)
+    val win = stringResource(R.string.a11y_win, game.score)
+    val paused = stringResource(R.string.a11y_paused)
+    val events = remember { AnnouncerEvents() }
+    val announcement = remember { mutableStateOf("") }
+    events.update(game)?.let { kind ->
+        announcement.value = when (kind) {
+            AnnouncerEvents.Kind.LEVEL_START -> levelStart
+            AnnouncerEvents.Kind.LEVEL_CLEAR -> levelClear
+            AnnouncerEvents.Kind.BALL_LOST -> ballLost
+            AnnouncerEvents.Kind.GAME_OVER -> gameOver
+            AnnouncerEvents.Kind.WIN -> win
+            AnnouncerEvents.Kind.PAUSED -> paused
+        }
+    }
+    Box(
+        Modifier
+            .size(1.dp)
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = announcement.value
+            },
+    )
+}
+
+/** Watches the engine step by step and names what just happened. */
+private class AnnouncerEvents {
+    enum class Kind { LEVEL_START, LEVEL_CLEAR, BALL_LOST, GAME_OVER, WIN, PAUSED }
+
+    private var state = Game.State.TITLE
+    private var level = 0
+    private var lives = 0
+    private var paused = false
+
+    fun update(game: Game): Kind? {
+        var kind: Kind? = null
+        if (game.state != state) {
+            kind = when (game.state) {
+                Game.State.PLAYING -> Kind.LEVEL_START
+                Game.State.LEVEL_CLEAR -> Kind.LEVEL_CLEAR
+                Game.State.GAME_OVER -> Kind.GAME_OVER
+                Game.State.WIN -> Kind.WIN
+                Game.State.TITLE -> null
+            }
+        } else if (game.state == Game.State.PLAYING) {
+            if (game.paused && !paused) kind = Kind.PAUSED
+            else if (game.lives < lives) kind = Kind.BALL_LOST
+            else if (game.level != level) kind = Kind.LEVEL_START
+        }
+        state = game.state; level = game.level; lives = game.lives; paused = game.paused
+        return kind
+    }
+}
 
 /** Which words the hints use: what the player taps, presses or touches. */
 private enum class InputHint { TOUCH, KEYS, TOUCHBAR }

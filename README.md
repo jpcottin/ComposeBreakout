@@ -108,6 +108,10 @@ glasses pictures are the screenshot tests' own renders.
   decides between "tap" and "press OK" hints, window posture drives the
   tabletop layout on foldables. Previews fall back to `uiMode` when the
   Application class is not around.
+- **A screen reader hears the round** — the playfield carries a state
+  description (level, bricks left, lives) and a polite live region names
+  each event once: a level begins or is cleared, a ball is lost, the game
+  ends, the round pauses. The HUD's score, lives and level are labelled.
 - **Keys and focus** — the playfield is a focusable node that turns D-pad
   and keyboard events into engine steering (held key = paddle sliding at
   its usual speed, like a finger on the strip); it holds focus while the
