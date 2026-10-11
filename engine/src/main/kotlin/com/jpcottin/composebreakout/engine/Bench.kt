@@ -9,15 +9,18 @@ import kotlin.system.exitProcess
  * (the numbers in the commit messages come from this program).
  *
  *   ./gradlew :engine:run --args="[--runs N] [--width W --height H] [--levels] [--campaigns]
- *                                 [--min-campaign-win PCT] [--trace]"
+ *                                 [--min-campaign-win PCT] [--seed S] [--level L] [--trace]"
  *
  * --levels    plays each level 1..10 on its own, N seeds each, starting with
  *             five balls (the default when nothing is selected).
  * --campaigns plays N full campaigns from level 1.
  * --min-campaign-win PCT exits 1 when fewer than PCT% of campaigns are won:
  *             the CI regression guard.
+ * --seed S    plays seed S alone instead of seeds 1..N: the way to replay
+ *             the one run that timed out in a full pass.
+ * --level L   plays level L alone (with --levels).
  * --trace     prints the scene (balls, paddle, autopilot intent) at every
- *             lost ball.
+ *             lost ball and at a timeout.
  */
 private const val DT = 1f / 60f
 private const val LEVEL_TIMEOUT = 480f     // seconds before a level counts as stuck
@@ -82,6 +85,7 @@ fun main(args: Array<String>) {
     var runs = 100; var w = 1080; var h = 2400
     var levels = false; var campaigns = false
     var minCampaignWin = -1.0
+    var onlySeed = 0; var onlyLevel = 0
     var i = 0
     while (i < args.size) {
         val next = { if (i + 1 < args.size) args[++i].toIntOrNull() ?: 0 else 0 }
@@ -92,6 +96,8 @@ fun main(args: Array<String>) {
             "--levels" -> levels = true
             "--campaigns" -> campaigns = true
             "--trace" -> trace = true
+            "--seed" -> onlySeed = next()
+            "--level" -> onlyLevel = next()
             "--min-campaign-win" -> minCampaignWin = if (i + 1 < args.size) args[++i].toDoubleOrNull() ?: -1.0 else -1.0
             else -> { System.err.println("unknown argument ${args[i]}"); exitProcess(2) }
         }
@@ -100,13 +106,17 @@ fun main(args: Array<String>) {
     if (minCampaignWin >= 0.0) campaigns = true
     if (!levels && !campaigns) levels = true
     if (runs <= 0 || w <= 0 || h <= 0) { System.err.println("bad size or run count"); exitProcess(2) }
-    println("Auto Play bench: ${w}x$h, $runs seeded runs")
+    if (onlyLevel != 0 && onlyLevel !in 1..Levels.COUNT) { System.err.println("no level $onlyLevel"); exitProcess(2) }
+    val seeds = if (onlySeed != 0) listOf(onlySeed) else (1..runs).toList()
+    val levelRange = if (onlyLevel != 0) onlyLevel..onlyLevel else 1..Levels.COUNT
+    println("Auto Play bench: ${w}x$h, " + (if (onlySeed != 0) "seed $onlySeed" else "$runs seeded runs") +
+        (if (onlyLevel != 0) ", level $onlyLevel" else ""))
 
     if (levels) {
         val total = Stats()
-        for (level in 1..Levels.COUNT) {
+        for (level in levelRange) {
             val s = Stats()
-            for (seed in 1..runs) {
+            for (seed in seeds) {
                 val g = seededGame(seed, w, h)
                 if (level > 1) g.debug.startLevel(level)
                 s.runs++
@@ -127,7 +137,7 @@ fun main(args: Array<String>) {
         var won = 0
         var wonSeconds = 0.0
         val reached = IntArray(Levels.COUNT + 1)
-        for (seed in 1..runs) {
+        for (seed in seeds) {
             val g = seededGame(seed, w, h)
             var total = 0f
             s.runs++
