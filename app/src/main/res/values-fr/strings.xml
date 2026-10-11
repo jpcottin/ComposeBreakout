@@ -34,6 +34,9 @@
     <string name="on_glasses_hint">Les réglages ramènent la partie</string>
     <string name="touch_to_play">Touchez la barre pour jouer</string>
     <string name="touch_to_launch">TOUCHEZ POUR LANCER</string>
+    <string name="start_level">NIVEAU %1$d</string>
+    <string name="a11y_previous_level">Niveau précédent</string>
+    <string name="a11y_next_level">Niveau suivant</string>
     <string name="paused">PAUSE</string>
     <string name="tap_to_resume">TOUCHEZ POUR REPRENDRE</string>
     <string name="press_to_resume">OK POUR REPRENDRE</string>

@@ -192,6 +192,24 @@ class GameScreenTest {
     }
 
     @Test
+    fun theTitleOffersAnyLevelReachedBefore() {
+        frames(5)
+        composeTestRule.onNodeWithContentDescription("Next level").assertDoesNotExist()   // nothing reached yet
+        val game = game()
+        scenario.onActivity { game.furthestLevel = 3 }
+        frames(2)
+        composeTestRule.onNodeWithContentDescription("Start level 1").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Next level").performClick()
+        frames(2)
+        composeTestRule.onNodeWithContentDescription("Start level 2").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Playfield").performClick()         // start the round
+        frames(5)
+        assertEquals(Game.State.PLAYING, game.state)
+        assertEquals(2, game.level)
+        composeTestRule.onNodeWithContentDescription("Level 2").assertIsDisplayed()
+    }
+
+    @Test
     fun aScreenReaderHearsTheRoundStart() {
         frames(5)
         composeTestRule.onNodeWithContentDescription("Playfield").performClick()

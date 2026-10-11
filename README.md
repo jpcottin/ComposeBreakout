@@ -24,9 +24,9 @@ with a hand-written Vulkan renderer.
 |---|---|---|
 | <img src="docs/screenshots/phone-title.png" width="270" alt="Title screen: the demo wall, COMPOSE BREAKOUT, the demo ball and paddle"> | <img src="docs/screenshots/phone-play.png" width="270" alt="Level 1 in play with Auto Play on: two balls after a multi-ball pickup, the slow-ball timer bar in the control strip"> | <img src="docs/screenshots/phone-game-over.png" width="270" alt="Game over screen: rank #2, NEW HIGH SCORE, the score 1,980"> |
 
-| Settings | Foldable, half-opened: the control surface below the hinge |
-|---|---|
-| <img src="docs/screenshots/phone-settings_auto.png" width="270" alt="Settings sheet: Sound on, Auto Play on, Glasses row reading NONE"> | <img src="docs/screenshots/foldable-tabletop.png" width="420" alt="Tabletop posture: the lane in the upper half, SLIDE HERE TO STEER and the paddle marker in the lower half"> |
+| Settings | Foldable, half-opened: the control surface below the hinge | The level pick |
+|---|---|---|
+| <img src="docs/screenshots/phone-settings_auto.png" width="270" alt="Settings sheet: Sound on, Auto Play on, Glasses row reading NONE"> | <img src="docs/screenshots/foldable-tabletop.png" width="420" alt="Tabletop posture: the lane in the upper half, SLIDE HERE TO STEER and the paddle marker in the lower half"> | <img src="docs/screenshots/phone-level-pick.png" width="270" alt="Title screen after a run: the level pick, LEVEL 1 between two arrows, above Tap to play"> |
 
 | TV, 1080p, the lane in the middle | AI Glasses: black background, no gear |
 |---|---|
@@ -60,6 +60,9 @@ emulator with the `autoplay` launch extra.
   launches; Up reaches the gear, Down comes back. On a half-opened foldable
   the game sits above the hinge and the whole lower half is the steering
   surface.
+- **Start where you got to:** the title screen offers any level reached
+  before on this device — the arrows, or left and right on a D-pad or
+  keyboard, pick it; the record is kept across launches.
 - **Pause:** a round in flight freezes when the screen goes away (the app
   goes to the background, Settings opens), on Back, or on P, Escape or a
   remote's play/pause button, and waits for a tap — PAUSED,

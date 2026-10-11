@@ -22,6 +22,9 @@ interface GameHost {
     fun haptic() {}
     /** The high-score table changed and should be persisted. */
     fun highScoresChanged(table: List<HighScore>) {}
+    /** A level never seen before was reached; persist it so the title can
+     *  offer it as a starting point. */
+    fun furthestLevelChanged(level: Int) {}
 
     /** The host that does nothing: tests, the bench, previews. */
     object None : GameHost

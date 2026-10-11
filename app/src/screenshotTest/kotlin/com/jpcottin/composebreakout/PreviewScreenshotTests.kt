@@ -42,6 +42,12 @@ private fun titleGame(aspect: Float): Game = Game().apply {
     step(this, 1f)
 }
 
+/** The title with a level pick: level 4 reached before, level 3 chosen. */
+private fun titlePickGame(aspect: Float): Game = titleGame(aspect).apply {
+    furthestLevel = 4
+    selectLevel(2)
+}
+
 /** Level 3, a few bricks down, a capsule falling, the wide paddle on. */
 private fun playingGame(aspect: Float): Game = Game().apply {
     setAspect(aspect)
@@ -111,6 +117,11 @@ private fun glassesGame(aspect: Float): Game = Game().apply {
 @Preview(name = "Phone", device = Devices.PHONE, showBackground = true)
 @Composable
 fun TitlePhoneScreenshot() = Screen(titleGame(PHONE))
+
+@PreviewTest
+@Preview(name = "Phone", device = Devices.PHONE, showBackground = true)
+@Composable
+fun TitleLevelPickPhoneScreenshot() = Screen(titlePickGame(PHONE))
 
 @PreviewTest
 @Preview(name = "Foldable", device = Devices.FOLDABLE, showBackground = true)

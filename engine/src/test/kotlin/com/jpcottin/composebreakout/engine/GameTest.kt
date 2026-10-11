@@ -27,6 +27,8 @@ private class RecordingHost : GameHost {
     override fun music(on: Boolean) { music.add(on) }
     override fun haptic() { haptics++ }
     override fun highScoresChanged(table: List<HighScore>) { tables.add(table) }
+    override fun furthestLevelChanged(level: Int) { furthest.add(level) }
+    val furthest = ArrayList<Int>()
 }
 
 private fun newGame(aspect: Float = PHONE, host: GameHost = GameHost.None): Game =
@@ -1058,5 +1060,104 @@ class TimestepTest {
         assertEquals(Game.MAX_FRAME, g.animTime, 1e-5f)
         g.update(-1f)
         assertEquals(Game.MAX_FRAME, g.animTime, 1e-5f)
+    }
+}
+
+class LevelSelectTest {
+    @Test fun aFreshDeviceOffersOnlyLevelOne() {
+        val g = newGame()
+        assertEquals(1, g.furthestLevel)
+        g.selectLevel(1)
+        assertEquals(1, g.startLevel)
+        g.selectLevel(-1)
+        assertEquals(1, g.startLevel)
+    }
+
+    @Test fun thePickStaysBetweenOneAndTheFurthestLevel() {
+        val g = newGame()
+        g.furthestLevel = 4
+        g.selectLevel(2); assertEquals(3, g.startLevel)
+        g.selectLevel(5); assertEquals(4, g.startLevel)
+        g.selectLevel(-9); assertEquals(1, g.startLevel)
+    }
+
+    @Test fun aRoundStartsAtThePickedLevelFromScratch() {
+        val g = newGame()
+        g.furthestLevel = 6
+        g.selectLevel(4)
+        g.tap()
+        g.update(DT)
+        assertEquals(Game.State.PLAYING, g.state)
+        assertEquals(5, g.level)
+        assertEquals(0L, g.score)
+        assertEquals(5, g.lives)
+        assertEquals(Levels.rows(5) * g.wallColumns, g.bricks.size)
+    }
+
+    @Test fun thePickIsFrozenOnceARoundIsUnderWay() {
+        val g = newGame()
+        g.furthestLevel = 3
+        g.tap(); g.update(DT)
+        g.selectLevel(2)
+        assertEquals(1, g.startLevel)
+    }
+
+    @Test fun reachingANewLevelRaisesTheRecordAndTellsTheHost() {
+        val host = RecordingHost()
+        val g = newGame(host = host)
+        g.debug.startGame()
+        assertEquals(1, g.furthestLevel)
+        assertTrue(host.furthest.isEmpty())              // level 1 is no news
+        g.debug.startLevel(3)
+        assertEquals(3, g.furthestLevel)
+        assertEquals(listOf(3), host.furthest)
+        g.debug.startLevel(2)                            // going back changes nothing
+        assertEquals(3, g.furthestLevel)
+        assertEquals(listOf(3), host.furthest)
+    }
+
+    @Test fun clearingALevelInPlayCountsAsReachingTheNext() {
+        val host = RecordingHost()
+        val g = newGame(host = host)
+        g.debug.startGame()
+        g.debug.clearWall()
+        g.debug.setBall(0f, 0.3f, 0f, -1f)
+        step(g, 5f)                                      // the clear, the interlude, level 2
+        assertEquals(2, g.level)
+        assertEquals(2, g.furthestLevel)
+        assertEquals(listOf(2), host.furthest)
+    }
+
+    @Test fun aRestoredRecordNeverGoesDown() {
+        val g = newGame()
+        g.debug.startLevel(5)
+        g.furthestLevel = 3                              // the host read an older value
+        assertEquals(3, g.furthestLevel)                 // the setter trusts the host...
+        g.furthestLevel = maxOf(g.furthestLevel, 5)      // ...so the host keeps the larger one
+        assertEquals(5, g.furthestLevel)
+    }
+
+    @Test fun loweringTheRecordPullsThePickDownWithIt() {
+        val g = newGame()
+        g.furthestLevel = 8
+        g.selectLevel(7)
+        assertEquals(8, g.startLevel)
+        g.furthestLevel = 2
+        assertEquals(2, g.startLevel)
+    }
+
+    @Test fun thePickSurvivesAGameOver() {
+        val g = newGame()
+        g.furthestLevel = 4
+        g.selectLevel(2)
+        g.tap(); g.update(DT)
+        g.debug.setLives(1)
+        g.debug.setBall(0f, 0.8f, 0f, 1f)
+        step(g, 2f)
+        assertEquals(Game.State.GAME_OVER, g.state)
+        step(g, 3f)
+        g.tap(); g.update(DT)
+        assertEquals(Game.State.TITLE, g.state)
+        assertEquals(3, g.startLevel)
     }
 }

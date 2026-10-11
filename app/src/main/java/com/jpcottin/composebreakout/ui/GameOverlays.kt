@@ -15,6 +15,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -180,6 +185,30 @@ internal fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, hin
                         Text(text = "L${hs.level}", style = MaterialTheme.typography.titleMedium.scaled(textScale), color = c.copy(alpha = 0.8f))
                     }
                 }
+            }
+        }
+        // Where the next round starts: any level reached before. Hidden
+        // until there is a choice to make.
+        if (game.furthestLevel > 1) {
+            val previous = stringResource(R.string.a11y_previous_level)
+            val next = stringResource(R.string.a11y_next_level)
+            Row(Modifier.atWorld(0f, 0.33f), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { game.selectLevel(-1) },
+                    enabled = game.startLevel > 1,
+                    modifier = Modifier.semantics { contentDescription = previous },
+                ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = PaddleCyan) }
+                Text(
+                    text = stringResource(R.string.start_level, game.startLevel),
+                    style = MaterialTheme.typography.titleMedium.scaled(textScale),
+                    color = PaddleCyan,
+                    modifier = Modifier.padding(horizontal = 8.dp).semantics { contentDescription = "Start level ${game.startLevel}" },
+                )
+                IconButton(
+                    onClick = { game.selectLevel(1) },
+                    enabled = game.startLevel < game.furthestLevel,
+                    modifier = Modifier.semantics { contentDescription = next },
+                ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = PaddleCyan) }
             }
         }
         Text(

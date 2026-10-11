@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -107,6 +108,8 @@ class GameViewModel(
             game.autoPlayActive = prefs[KEY_AUTO_PLAY] ?: false
             hapticsEnabled = prefs[KEY_HAPTICS] ?: true
             game.restoreHighScores(decodeScores(prefs[KEY_HIGH_SCORES]))
+            // A restored session may already sit past the stored record.
+            game.furthestLevel = maxOf(game.furthestLevel, prefs[KEY_FURTHEST_LEVEL] ?: 1)
             // A launch asked for an unattended round: Auto Play on, round
             // started. It comes after the settings load so the stored switch
             // cannot turn the autopilot back off, and the handle carries the
@@ -170,6 +173,10 @@ class GameViewModel(
         v.vibrate(effect)
     }
 
+    override fun furthestLevelChanged(level: Int) {
+        viewModelScope.launch { store.edit { it[KEY_FURTHEST_LEVEL] = maxOf(it[KEY_FURTHEST_LEVEL] ?: 1, level) } }
+    }
+
     override fun highScoresChanged(table: List<HighScore>) {
         // The phone and the glasses instances share the store: fold the other
         // one's rows in rather than overwrite them.
@@ -187,6 +194,7 @@ class GameViewModel(
         private val KEY_AUTO_PLAY = booleanPreferencesKey("auto_play")
         private val KEY_HAPTICS = booleanPreferencesKey("haptics")
         private val KEY_HIGH_SCORES = stringPreferencesKey("high_scores")
+        private val KEY_FURTHEST_LEVEL = intPreferencesKey("furthest_level")
         private const val KEY_SESSION = "session"
         /** Intent extra: start an Auto Play round as soon as the game is up. */
         const val EXTRA_AUTOPLAY = "autoplay"
