@@ -210,7 +210,7 @@ fun GlassesScreenshot() = Screen(glassesGame(640f / 360f), glasses = true)
 @PreviewTest
 @Preview(name = "Glasses title", widthDp = 640, heightDp = 360, showBackground = true, backgroundColor = 0xFF000000)
 @Composable
-fun GlassesTitleScreenshot() = Screen(titleGame(640f / 360f).apply { controlMode = Game.ControlMode.TOUCHBAR }, glasses = true)
+fun GlassesTitleScreenshot() = Screen(titlePickGame(640f / 360f).apply { controlMode = Game.ControlMode.TOUCHBAR }, glasses = true)
 
 @PreviewTest
 @Preview(name = "On glasses banner", device = Devices.PHONE, showBackground = true)

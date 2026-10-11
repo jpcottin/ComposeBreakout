@@ -167,48 +167,52 @@ internal fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, hin
             Text(
                 text = stringResource(R.string.title_line),
                 style = if (farViewing) MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp)
-                        else MaterialTheme.typography.displayLarge,
+                        else MaterialTheme.typography.displayLarge.scaled(textScale),
                 color = TitleGold,
                 textAlign = TextAlign.Center,
             )
         }
-        // High-score podium: top three, gold / silver / bronze.
-        if (game.highScores.isNotEmpty()) {
-            Column(Modifier.atWorld(0f, 0.17f), horizontalAlignment = Alignment.CenterHorizontally) {
-                for ((i, hs) in game.highScores.take(3).withIndex()) {
-                    val c = PodiumColors[i]
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                        Box(Modifier.size(width = 24.dp * textScale, height = 6.dp * textScale).background(c, RoundedCornerShape(3.dp)))
-                        Spacer(Modifier.width(16.dp))
-                        Text(text = "%,d".format(hs.score), style = MaterialTheme.typography.titleLarge.scaled(textScale), color = c)
-                        Spacer(Modifier.width(24.dp))
-                        Text(text = "L${hs.level}", style = MaterialTheme.typography.titleMedium.scaled(textScale), color = c.copy(alpha = 0.8f))
-                    }
+        // High-score podium (top three, gold / silver / bronze) and, under
+        // it, where the next round starts: any level reached before. The
+        // pick follows the podium rather than sitting at a height of its
+        // own, so a short window never runs the two together.
+        // A short window (small text) has room for the best score only.
+        val podiumRows = if (textScale < 1f) 1 else 3
+        Column(Modifier.atWorld(0f, 0.17f), horizontalAlignment = Alignment.CenterHorizontally) {
+            for ((i, hs) in game.highScores.take(podiumRows).withIndex()) {
+                val c = PodiumColors[i]
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                    Box(Modifier.size(width = 24.dp * textScale, height = 6.dp * textScale).background(c, RoundedCornerShape(3.dp)))
+                    Spacer(Modifier.width(16.dp))
+                    Text(text = "%,d".format(hs.score), style = MaterialTheme.typography.titleLarge.scaled(textScale), color = c)
+                    Spacer(Modifier.width(24.dp))
+                    Text(text = "L${hs.level}", style = MaterialTheme.typography.titleMedium.scaled(textScale), color = c.copy(alpha = 0.8f))
                 }
             }
-        }
-        // Where the next round starts: any level reached before. Hidden
-        // until there is a choice to make.
-        if (game.furthestLevel > 1) {
-            val previous = stringResource(R.string.a11y_previous_level)
-            val next = stringResource(R.string.a11y_next_level)
-            Row(Modifier.atWorld(0f, 0.33f), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = { game.selectLevel(-1) },
-                    enabled = game.startLevel > 1,
-                    modifier = Modifier.semantics { contentDescription = previous },
-                ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = PaddleCyan) }
-                Text(
-                    text = stringResource(R.string.start_level, game.startLevel),
-                    style = MaterialTheme.typography.titleMedium.scaled(textScale),
-                    color = PaddleCyan,
-                    modifier = Modifier.padding(horizontal = 8.dp).semantics { contentDescription = "Start level ${game.startLevel}" },
-                )
-                IconButton(
-                    onClick = { game.selectLevel(1) },
-                    enabled = game.startLevel < game.furthestLevel,
-                    modifier = Modifier.semantics { contentDescription = next },
-                ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = PaddleCyan) }
+            if (game.furthestLevel > 1) {
+                val previous = stringResource(R.string.a11y_previous_level)
+                val next = stringResource(R.string.a11y_next_level)
+                // The glasses' touchbar is a single button: the pick is shown
+                // there, made on the phone, so no arrows.
+                val arrows = hint != InputHint.TOUCHBAR
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (arrows) IconButton(
+                        onClick = { game.selectLevel(-1) },
+                        enabled = game.startLevel > 1,
+                        modifier = Modifier.semantics { contentDescription = previous },
+                    ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = PaddleCyan) }
+                    Text(
+                        text = stringResource(R.string.start_level, game.startLevel),
+                        style = MaterialTheme.typography.titleMedium.scaled(textScale),
+                        color = PaddleCyan,
+                        modifier = Modifier.padding(horizontal = 8.dp).semantics { contentDescription = "Start level ${game.startLevel}" },
+                    )
+                    if (arrows) IconButton(
+                        onClick = { game.selectLevel(1) },
+                        enabled = game.startLevel < game.furthestLevel,
+                        modifier = Modifier.semantics { contentDescription = next },
+                    ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = PaddleCyan) }
+                }
             }
         }
         Text(
