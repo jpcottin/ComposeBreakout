@@ -251,6 +251,30 @@ class GameScreenTest {
     }
 
     @Test
+    fun leftAndRightOnTheTitlePickTheLevel() {
+        frames(5)
+        val game = game()
+        scenario.onActivity { game.furthestLevel = 3 }
+        val playfield = focusThePlayfield()
+        playfield.performKeyInput { keyDown(Key.DirectionRight); keyUp(Key.DirectionRight) }
+        stepUntil(10) { game.startLevel == 2 }
+        assertEquals(2, game.startLevel)
+        playfield.performKeyInput { keyDown(Key.DirectionRight); keyUp(Key.DirectionRight) }
+        playfield.performKeyInput { keyDown(Key.DirectionRight); keyUp(Key.DirectionRight) }   // past the record: stays
+        stepUntil(10) { game.startLevel == 3 }
+        assertEquals(3, game.startLevel)
+        playfield.performKeyInput { keyDown(Key.DirectionLeft); keyUp(Key.DirectionLeft) }
+        stepUntil(10) { game.startLevel == 2 }
+        assertEquals(2, game.startLevel)
+        frames(2)
+        composeTestRule.onNodeWithContentDescription("Start level 2").assertIsDisplayed()
+        playfield.performKeyInput { keyDown(Key.DirectionCenter); keyUp(Key.DirectionCenter) }  // and OK starts there
+        stepUntil(10) { game.state == Game.State.PLAYING }
+        assertEquals(2, game.level)
+        assertEquals(0f, game.paddleX, 1e-6f)                                                   // the keys picked, not steered
+    }
+
+    @Test
     fun aScreenReaderHearsTheRoundStart() {
         frames(5)
         composeTestRule.onNodeWithContentDescription("Playfield").performClick()
