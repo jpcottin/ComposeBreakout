@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jpcottin.composebreakout.R
 import com.jpcottin.composebreakout.engine.Game
@@ -81,6 +82,11 @@ fun GameScreen(viewModel: GameViewModel) {
     val settings by viewModel.settings.collectAsStateWithLifecycle(initialValue = Settings())
     var showSettings by remember { mutableStateOf(false) }
     LogDeviceTraits()
+    // The speakers follow the activity: silent in the background.
+    LifecycleResumeEffect(viewModel) {
+        viewModel.audio.resume()
+        onPauseOrDispose { viewModel.audio.pause() }
+    }
     // The clock stops while the sheet is up: a round waits for the player.
     GameScreen(
         game = viewModel.game,
