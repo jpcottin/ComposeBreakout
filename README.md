@@ -129,9 +129,10 @@ emulator with the `autoplay` launch extra.
   description (level, bricks left, lives) and a polite live region names
   each event once: a level begins or is cleared, a ball is lost, the game
   ends, the round pauses. The HUD's score, lives and level are labelled.
-- **English and French**, and the app is listed in the system's per-app
-  language picker (Android 13+): the build generates the locale config
-  from the `res/` folders, so a new `values-xx/` is all a language needs.
+- **English, French and Spanish**, and the app is listed in the system's
+  per-app language picker (Android 13+): the build generates the locale
+  config from the `res/` folders, so a new `values-xx/` is all a language
+  needs.
 - **Keys and focus** — the playfield is a focusable node that turns D-pad
   and keyboard events into engine steering (held key = paddle sliding at
   its usual speed, like a finger on the strip); it holds focus while the
