@@ -24,3 +24,4 @@ keystore.properties
 
 # Gradle output captured by .github/scripts/run-instrumented.sh
 gradle-run-*.log
+bench-*.txt
