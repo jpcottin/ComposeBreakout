@@ -138,7 +138,17 @@ class GameViewModel(
     // ── GameHost ──────────────────────────────────────────────────────────────
 
     override fun sound(event: SoundEvent) = audio.synth.trigger(event)
-    override fun brickBreak(hz: Float) = audio.synth.brickBreak(hz)
+    override fun brickBreak(hz: Float) {
+        audio.synth.brickBreak(hz)
+        // A light tick under the finger for every brick, the heavy click
+        // staying for a lost ball; both only when the effect exists.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tick?.let { vibrator?.vibrate(it) }
+    }
+
+    private val tick: VibrationEffect? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && vibrator?.hasVibrator() == true)
+            VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
+        else null
     override fun music(on: Boolean) { audio.synth.musicEnabled = on }
 
     override fun haptic() {
