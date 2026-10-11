@@ -105,6 +105,13 @@ class GameViewModel(
             game.soundEnabled = prefs[KEY_SOUND] ?: true
             game.autoPlayActive = prefs[KEY_AUTO_PLAY] ?: false
             game.restoreHighScores(decodeScores(prefs[KEY_HIGH_SCORES]))
+            // A launch asked for an unattended round: Auto Play on, round
+            // started. It comes after the settings load so the stored switch
+            // cannot turn the autopilot back off, and the handle carries the
+            // launching intent's extras, so this runs once per ViewModel
+            // whatever the activity does.
+            //   adb shell am start -n com.jpcottin.composebreakout/.MainActivity --ez autoplay true
+            if (savedState.get<Boolean>(EXTRA_AUTOPLAY) == true) startUnattendedRound()
         }
     }
 
@@ -160,6 +167,8 @@ class GameViewModel(
         private val KEY_AUTO_PLAY = booleanPreferencesKey("auto_play")
         private val KEY_HIGH_SCORES = stringPreferencesKey("high_scores")
         private const val KEY_SESSION = "session"
+        /** Intent extra: start an Auto Play round as soon as the game is up. */
+        const val EXTRA_AUTOPLAY = "autoplay"
         private const val SESSION_MID_GAME = "midGame"
         private const val SESSION_LEVEL = "level"
         private const val SESSION_SCORE = "score"
