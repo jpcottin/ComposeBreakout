@@ -172,7 +172,8 @@ class GameScreenTest {
         frames(5)
         val liveRegion = SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)
         composeTestRule.onNode(liveRegion and hasContentDescription("Level 1 begins")).assertExists()
+        val bricks = game().breakableLeft                            // 28 on a phone, 40 on a wide lane
         composeTestRule.onNodeWithContentDescription("Playfield")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Level 1, 28 bricks left, 5 lives"))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Level 1, $bricks bricks left, 5 lives"))
     }
 }
