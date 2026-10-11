@@ -44,6 +44,12 @@ android {
     androidResources {
         generateLocaleConfig = true
     }
+    // A guest on a software GPU (the XR headset image on a CI runner) can
+    // take seconds to answer a property query; with the default timeout
+    // Gradle wrote it off as "Unknown API Level" and ran no tests on it.
+    adbOptions {
+        timeOutInMs = 120_000
+    }
     buildFeatures {
         compose = true
         aidl = false
