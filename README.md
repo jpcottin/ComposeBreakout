@@ -178,6 +178,7 @@ balls it loses. Every Auto Play change is measured here before it ships:
 ./gradlew :engine:run --args="--runs 100 --levels --campaigns"        # portrait phone
 ./gradlew :engine:run --args="--width 2400 --height 1080 --runs 50 --campaigns"
 ./gradlew :engine:run --args="--runs 1 --levels --trace"              # the scene at every lost ball
+./gradlew :engine:run --args="--levels --level 8 --seed 17 --trace"   # replay one run that timed out
 ```
 
 CI runs it with `--min-campaign-win 95` on a portrait phone and a landscape
