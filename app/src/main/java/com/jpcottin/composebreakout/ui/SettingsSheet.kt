@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SmartToy
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -31,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import com.jpcottin.composebreakout.R
 import com.jpcottin.composebreakout.theme.focusRing
 
+/** What the Settings glasses row can say. */
+enum class GlassesState { NONE, CONNECTED, ACTIVE }
+
 /**
  * Settings as a Material 3 bottom sheet. Each row is one switch with a title
  * and a hint; the whole row toggles, and each row carries the focus ring so
@@ -42,10 +46,12 @@ fun SettingsSheet(
     onSoundChange: (Boolean) -> Unit,
     onAutoPlayChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
+    glasses: GlassesState = GlassesState.NONE,
+    onGlassesToggle: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        SettingsContent(settings, onSoundChange, onAutoPlayChange, onDismiss)
+        SettingsContent(settings, onSoundChange, onAutoPlayChange, onDismiss, glasses = glasses, onGlassesToggle = onGlassesToggle)
     }
 }
 
@@ -57,6 +63,8 @@ fun SettingsContent(
     onAutoPlayChange: (Boolean) -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    glasses: GlassesState = GlassesState.NONE,
+    onGlassesToggle: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(
@@ -79,6 +87,7 @@ fun SettingsContent(
             checked = settings.autoPlay,
             onCheckedChange = onAutoPlayChange,
         )
+        GlassesRow(glasses, onGlassesToggle)
         Spacer(Modifier.height(16.dp))
         val doneInteraction = remember { MutableInteractionSource() }
         Button(
@@ -124,5 +133,59 @@ private fun SettingRow(
             Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+/**
+ * The AI Glasses: with a pair connected, PLAY hands the game to the
+ * glasses' projected display; while it plays there, PHONE brings it back.
+ * With nothing paired the row is informational.
+ */
+@Composable
+private fun GlassesRow(state: GlassesState, onToggle: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val shape = RoundedCornerShape(12.dp)
+    val enabled = state != GlassesState.NONE
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRing(interaction, shape)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onToggle,
+            )
+            .padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.settings_glasses), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(
+                    when (state) {
+                        GlassesState.NONE -> R.string.settings_glasses_none
+                        GlassesState.CONNECTED -> R.string.settings_glasses_connected
+                        GlassesState.ACTIVE -> R.string.settings_glasses_active
+                    },
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = stringResource(
+                when (state) {
+                    GlassesState.NONE -> R.string.settings_glasses_unavailable
+                    GlassesState.CONNECTED -> R.string.settings_glasses_play
+                    GlassesState.ACTIVE -> R.string.settings_glasses_phone
+                },
+            ).uppercase(),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

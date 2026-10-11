@@ -9,4 +9,8 @@
     <style name="Theme.ComposeBreakout" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">#080A17</item>
     </style>
+    <!-- Pure black renders transparent on additive AR lenses. -->
+    <style name="Theme.ComposeBreakout.Glasses">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
 </resources>

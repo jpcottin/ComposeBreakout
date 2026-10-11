@@ -60,11 +60,14 @@ fun DrawScope.drawPlayfield(game: Game) {
     val fieldHW = game.fieldHalfWidth
     val inRound = game.state != Game.State.TITLE
 
-    // Side margins on a wide screen: the lane stops short of the edges.
+    // Side margins on a wide screen: the lane stops short of the edges. On
+    // the glasses (touchbar mode) they stay black: black is transparent on
+    // additive AR lenses, a tint would be a grey slab.
     if (fieldHW < game.aspect - 0.001f) {
         val margin = m.len(game.aspect - fieldHW)
-        drawRect(SpaceSurface, topLeft = Offset.Zero, size = Size(margin, size.height))
-        drawRect(SpaceSurface, topLeft = Offset(size.width - margin, 0f), size = Size(margin, size.height))
+        val marginColor = if (game.controlMode == Game.ControlMode.TOUCHBAR) Color.Black else SpaceSurface
+        drawRect(marginColor, topLeft = Offset.Zero, size = Size(margin, size.height))
+        drawRect(marginColor, topLeft = Offset(size.width - margin, 0f), size = Size(margin, size.height))
         for (sgn in listOf(-1f, 1f)) {
             val x = m.x(sgn * fieldHW)
             drawLine(LaneLine.copy(alpha = 0.35f), Offset(x, 0f), Offset(x, size.height), strokeWidth = m.len(0.006f))
