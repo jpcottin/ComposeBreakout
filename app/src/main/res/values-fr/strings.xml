@@ -30,6 +30,12 @@
     <string name="settings_glasses_play">Jouer</string>
     <string name="settings_glasses_phone">Téléphone</string>
     <string name="settings_glasses_unavailable">Aucune</string>
+    <string name="settings_reset">Réinitialiser la progression</string>
+    <string name="settings_reset_hint">Oublie les meilleurs scores et le niveau atteint</string>
+    <string name="reset_confirm_title">Réinitialiser la progression ?</string>
+    <string name="reset_confirm_text">Les meilleurs scores et le niveau le plus avancé seront effacés. Aucun retour en arrière.</string>
+    <string name="reset_confirm_yes">Réinitialiser</string>
+    <string name="cancel">Annuler</string>
     <string name="on_glasses">SUR LES LUNETTES</string>
     <string name="on_glasses_hint">Les réglages ramènent la partie</string>
     <string name="touch_to_play">Touchez la barre pour jouer</string>

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.lifecycle.ViewModelProvider
 import com.jpcottin.composebreakout.engine.Game
+import com.jpcottin.composebreakout.engine.HighScore
 import com.jpcottin.composebreakout.ui.GameViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -207,6 +208,27 @@ class GameScreenTest {
         assertEquals(Game.State.PLAYING, game.state)
         assertEquals(2, game.level)
         composeTestRule.onNodeWithContentDescription("Level 2").assertIsDisplayed()
+    }
+
+    @Test
+    fun resetProgressForgetsTheScoresAndTheLevelRecord() {
+        frames(5)
+        val game = game()
+        scenario.onActivity {
+            game.furthestLevel = 4
+            game.restoreHighScores(listOf(HighScore(900, 2)))
+        }
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.onNodeWithText("Reset progress").performClick()
+        composeTestRule.onNodeWithText("Cancel").performClick()                 // thought better of it
+        composeTestRule.waitForIdle()
+        assertEquals(4, game.furthestLevel)
+        composeTestRule.onNodeWithText("Reset progress").performClick()
+        composeTestRule.onNodeWithText("Reset").performClick()
+        composeTestRule.waitForIdle()
+        assertEquals(1, game.furthestLevel)
+        assertTrue(game.highScores.isEmpty())
     }
 
     @Test

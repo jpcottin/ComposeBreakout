@@ -144,6 +144,13 @@ class GameViewModel(
         if (game.state == Game.State.TITLE) game.tap()
     }
 
+    /** Forget the high scores and the furthest level, in the game and on disk. */
+    fun resetProgress() {
+        game.restoreHighScores(emptyList())
+        game.furthestLevel = 1
+        viewModelScope.launch { store.edit { it.remove(KEY_HIGH_SCORES); it.remove(KEY_FURTHEST_LEVEL) } }
+    }
+
     override fun onCleared() {
         audio.release()
     }
