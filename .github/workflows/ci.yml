@@ -74,27 +74,152 @@ jobs:
       - name: Play seeded campaigns on a landscape screen
         run: ./gradlew :engine:run --args="--width 2400 --height 1080 --runs 50 --levels --campaigns --min-campaign-win 95" -q
 
-  # ── Instrumented tests on phone, foldable and TV emulators ──────────────────
+  # ── Instrumented tests on emulators ──────────────────────────────────────────
+  # Phones, a foldable and a TV on stock images gate the merge, on the
+  # lavapipe GPU (a software Vulkan device) or the emulator's auto choice. The
+  # XR headset, the swiftshader comparison and the API 37.x legs (stable and
+  # canary emulators, lavapipe and auto GPU) run non-blocking so a flaky or
+  # unavailable preview never gates a PR, but their results are read.
   instrumented:
     name: Instrumented (${{ matrix.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: phone API 34
-            api-level: 34
+          - name: phone API 33
+            api-level: '33'
             target: google_apis
             profile: pixel_6
+            gpu: lavapipe
+            ram-size: 2048M
+            memory: 2048
+          - name: phone API 34
+            api-level: '34'
+            target: google_apis
+            profile: pixel_6
+            gpu: lavapipe
+            ram-size: 2048M
+            memory: 2048
+          # One swiftshader leg, non-blocking: a comparison point, not a gate.
+          - name: phone API 34 swiftshader
+            api-level: '34'
+            target: google_apis
+            profile: pixel_6
+            gpu: swiftshader_indirect
+            ram-size: 2048M
+            memory: 2048
+            experimental: true
+          - name: phone API 35
+            api-level: '35'
+            target: google_apis
+            profile: pixel_6
+            gpu: auto
+            ram-size: 2048M
+            memory: 2048
+          - name: phone API 36
+            api-level: '36'
+            target: google_apis
+            profile: pixel_6
+            gpu: auto
+            ram-size: 2048M
+            memory: 2048
           - name: foldable API 36
-            api-level: 36
+            api-level: '36'
             target: google_apis
             profile: 7.6in Foldable
+            gpu: lavapipe
+            ram-size: 2048M
+            memory: 2048
           - name: TV API 36
-            api-level: 36
+            api-level: '36'
             target: android-tv
             profile: tv_1080p
+            gpu: lavapipe
+            ram-size: 2048M
+            memory: 2048
+          - name: XR headset API 34
+            api-level: '34'
+            target: google-xr
+            profile: xr_headset_device
+            gpu: auto
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
+          # API 37.x ps16k legs. channel selects the emulator (and image
+          # revision) via sdkmanager --channel.
+          - name: phone API 37.0 stable lavapipe
+            api-level: '37.0'
+            target: google_apis_ps16k
+            profile: pixel_6
+            gpu: lavapipe
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
+          - name: phone API 37.0 canary lavapipe
+            api-level: '37.0'
+            target: google_apis_ps16k
+            profile: pixel_6
+            channel: canary
+            gpu: lavapipe
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
+          - name: phone API 37.0 canary auto
+            api-level: '37.0'
+            target: google_apis_ps16k
+            profile: pixel_6
+            channel: canary
+            gpu: auto
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
+          - name: phone API 37.1 canary lavapipe
+            api-level: '37.1'
+            target: google_apis_ps16k
+            profile: pixel_6
+            channel: canary
+            gpu: lavapipe
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
+          - name: phone API 37.1 canary auto
+            api-level: '37.1'
+            target: google_apis_ps16k
+            profile: pixel_6
+            channel: canary
+            gpu: auto
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
+          - name: phone API 37.2 canary lavapipe
+            api-level: '37.2'
+            target: google_apis_ps16k
+            profile: pixel_6
+            channel: canary
+            gpu: lavapipe
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
+          - name: phone API 37.2 canary auto
+            api-level: '37.2'
+            target: google_apis_ps16k
+            profile: pixel_6
+            channel: canary
+            gpu: auto
+            ram-size: 4096M
+            memory: 4096
+            cores: 4
+            experimental: true
 
     steps:
       - uses: actions/checkout@v6
@@ -113,6 +238,23 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The runner image ships an outdated avdmanager that writes target=android-0
+      # for minor-versioned packages (android-37.x); the emulator clamps that to
+      # API 3 and skips the Vulkan/GLDirectMem auto-enable. The same update
+      # brings the XR and foldable device profiles.
+      - name: Update SDK cmdline-tools
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmdline-tools;latest" > /dev/null
+          if [ -d "$SDK/cmdline-tools/latest-2" ]; then
+            rm -rf "$SDK/cmdline-tools/latest"
+            mv "$SDK/cmdline-tools/latest-2" "$SDK/cmdline-tools/latest"
+          fi
+          "$SDK/cmdline-tools/latest/bin/avdmanager" list device > /dev/null
+
+      # Cold boot, no snapshot, a large userdata partition so the APK can
+      # stage, a generous boot timeout, and adb held off until boot completes
+      # (-delay-adb): a device that goes offline mid-boot used to fail a leg.
       - name: Run instrumented tests on the emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -120,22 +262,581 @@ jobs:
           arch: x86_64
           target: ${{ matrix.target }}
           profile: "${{ matrix.profile }}"
+          channel: ${{ matrix.channel || 'stable' }}
           force-avd-creation: true
-          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -verbose -show-kernel -debug-metrics -metrics-collection
-          disable-animations: true
+          ram-size: ${{ matrix.ram-size }}
+          cores: ${{ matrix.cores }}
+          disk-size: 8192M
           emulator-boot-timeout: 900
+          emulator-options: -no-snapshot -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none -memory ${{ matrix.memory }} -delay-adb -verbose -show-kernel -debug-metrics -metrics-collection
+          disable-animations: true
           script: |
+            echo "===== AVD root ini ====="; cat "$HOME/.android/avd/test.ini" 2>/dev/null || echo "(test.ini not found)"
+            echo "===== AVD config.ini ====="; cat "$HOME/.android/avd/test.avd/config.ini" 2>/dev/null || echo "(config.ini not found)"
             adb wait-for-device
             adb logcat -v time > "${{ github.workspace }}/emulator_logcat.txt" &
-            ./gradlew :app:connectedDebugAndroidTest --no-daemon
+            ./gradlew :app:connectedDebugAndroidTest --no-daemon || { echo "=== test run failed; capturing guest diagnostics ==="; adb root >/dev/null 2>&1 || true; adb wait-for-device || true; echo "----- crash logcat buffer -----"; adb logcat -d -b crash 2>/dev/null | tail -n 300 || true; echo "----- /data/tombstones -----"; for f in $(adb shell ls /data/tombstones 2>/dev/null | tr -d '\r'); do case "$f" in *.pb) ;; *) echo "===== $f ====="; adb shell cat "/data/tombstones/$f" 2>/dev/null || true ;; esac; done; exit 1; }
 
       - name: Dump guest logcat on failure
         if: failure()
-        run: tail -n 800 "${{ github.workspace }}/emulator_logcat.txt" 2>/dev/null || echo "no logcat captured"
+        run: tail -n 1000 "${{ github.workspace }}/emulator_logcat.txt" 2>/dev/null || echo "no logcat captured"
 
       - name: Upload instrumented test report on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: instrumented-test-report-${{ matrix.api-level }}-${{ matrix.profile }}
+          name: instrumented-test-report-${{ matrix.api-level }}-${{ matrix.profile }}-${{ matrix.channel || 'stable' }}-${{ matrix.gpu }}
           path: app/build/reports/androidTests/connected/
+
+  # ── Experiment: the whole emulator flow through the Android CLI ──────────────
+  # (https://d.android.com/tools/agents/android-cli) instead of sdkmanager,
+  # avdmanager and the emulator-runner action, on the canary emulator.
+  android-cli-experiment:
+    name: Android CLI experiment (API ${{ matrix.api-level }} canary emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: ['37.0', '37.2']
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Android CLI
+        run: |
+          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Android CLI diagnostics
+        run: |
+          android --version
+          android info
+          android sdk list | head -40
+
+      - name: Install canary emulator and the ps16k image with the CLI
+        run: |
+          android sdk install --canary emulator platform-tools system-images/android-${{ matrix.api-level }}/google_apis_ps16k/x86_64
+          android sdk list | grep -iE "^  emulator|android-${{ matrix.api-level }}" || true
+
+      # 'android emulator create' is profile-based with no way to pin an image
+      # (it picks google_apis_playstore, whose first-boot Play overlays steal
+      # window focus and break Espresso). An AVD is just ini files, so create
+      # the profile with the CLI and retarget it at the pinned image.
+      - name: Create AVD with the CLI and retarget it to the ps16k image
+        run: |
+          android emulator create medium_phone
+          DEVICE="$(android emulator list | head -n1)"
+          AVD_DIR="$HOME/.android/avd/$DEVICE.avd"
+          if [ -z "$DEVICE" ] || [ ! -d "$AVD_DIR" ]; then
+            echo "ERROR: created AVD not found (DEVICE='$DEVICE')"
+            ls -la "$HOME/.android/avd/" || true
+            exit 1
+          fi
+          echo "CLI created AVD: $DEVICE"
+          CFG="$AVD_DIR/config.ini"
+          set_ini() {
+            if grep -q "^$1=" "$CFG"; then sed -i "s#^$1=.*#$1=$2#" "$CFG"; else echo "$1=$2" >> "$CFG"; fi
+          }
+          sed -i 's/^target=.*/target=android-${{ matrix.api-level }}/' "$HOME/.android/avd/$DEVICE.ini"
+          set_ini image.sysdir.1 'system-images/android-${{ matrix.api-level }}/google_apis_ps16k/x86_64/'
+          set_ini tag.id google_apis
+          set_ini tag.display 'Google APIs'
+          set_ini PlayStore.enabled false
+          set_ini hw.ramSize 4096
+          set_ini hw.cpu.ncore 4
+          set_ini disk.dataPartition.size 8192M
+          if grep -q '^tag.ids=' "$CFG"; then sed -i 's/^tag.ids=.*/tag.ids=google_apis,page_size_16kb/' "$CFG"; fi
+          if grep -q '^tag.displaynames=' "$CFG"; then sed -i 's/^tag.displaynames=.*/tag.displaynames=Google APIs,16 KB Page Size/' "$CFG"; fi
+          echo "===== root ini ====="; cat "$HOME/.android/avd/$DEVICE.ini"
+          echo "===== config.ini ====="; cat "$CFG"
+          echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
+
+      # 'android emulator start' passes neither -noaudio nor -no-window, so the
+      # runner needs libpulse and an X display.
+      - name: Install emulator host dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libpulse0 xvfb
+          Xvfb :99 -screen 0 1280x800x24 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Start emulator with the CLI
+        timeout-minutes: 15
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          export PATH="$SDK/platform-tools:$PATH"
+          echo "Starting AVD: $DEVICE"
+          android emulator start --cold "$DEVICE"
+          for _ in $(seq 1 30); do adb get-state >/dev/null 2>&1 && break; sleep 2; done
+          adb get-state >/dev/null 2>&1 || { echo "===== emulator.log ====="; cat "$HOME/.android/$DEVICE/emulator.log" 2>/dev/null || echo "(no emulator.log)"; exit 1; }
+          adb devices
+          adb shell getprop ro.build.version.sdk
+          adb shell getprop sys.boot_completed
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb logcat -v time > "${{ github.workspace }}/emulator_logcat.txt" &
+
+      - name: Dump emulator.log on failure
+        if: failure()
+        run: cat "$HOME/.android/$DEVICE/emulator.log" 2>/dev/null || echo "(no emulator.log)"
+
+      - name: Run instrumented tests
+        run: ./gradlew :app:connectedDebugAndroidTest
+
+      - name: Stop emulator
+        if: always()
+        run: android emulator stop "$DEVICE" || true
+
+      - name: Dump logcat on failure
+        if: failure()
+        run: tail -n 500 "${{ github.workspace }}/emulator_logcat.txt" 2>/dev/null || echo "no logcat captured"
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: instrumented-test-report-android-cli-${{ matrix.api-level }}
+          path: app/build/reports/androidTests/connected/
+
+  # ── Experiment: the Android Emulator Preview package ─────────────────────────
+  # (emulators;latest, a separate SDK package installing to emulators/latest/,
+  # API 37+ only), launched by its binary: the emulator-runner action hardcodes
+  # $SDK/emulator/emulator and cannot use it.
+  emulator-preview-experiment:
+    name: Emulator Preview experiment (emulators/latest, API ${{ matrix.api-level }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: ['37.0', '37.2']
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Set up Android Emulator Preview
+        uses: ./.github/actions/preview-emulator
+        with:
+          api-level: ${{ matrix.api-level }}
+
+      - name: Boot preview emulator
+        timeout-minutes: 12
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          export PATH="$SDK/platform-tools:$PATH"
+          "$SDK/emulators/latest/emulator" @test -no-snapshot -no-window -gpu auto -noaudio -no-boot-anim -camera-back none -memory 4096 -verbose -show-kernel -debug-metrics -metrics-collection > "${{ github.workspace }}/emulator_stdout.txt" 2>&1 &
+          EMU_PID=$!
+          tail -F "${{ github.workspace }}/emulator_stdout.txt" &
+          TAIL_PID=$!
+          for _ in $(seq 1 36); do
+            kill -0 "$EMU_PID" 2>/dev/null || { echo "ERROR: emulator process exited early"; exit 1; }
+            adb get-state >/dev/null 2>&1 && break
+            sleep 5
+          done
+          adb get-state >/dev/null 2>&1 || { echo "ERROR: no device after 180s"; exit 1; }
+          for _ in $(seq 1 48); do
+            [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
+            sleep 10
+          done
+          [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] || { echo "===== boot timeout ====="; exit 1; }
+          adb devices
+          adb shell getprop ro.build.version.sdk
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb logcat -v time > "${{ github.workspace }}/emulator_logcat.txt" &
+          kill "$TAIL_PID" 2>/dev/null || true
+
+      - name: Run instrumented tests
+        run: ./gradlew :app:connectedDebugAndroidTest
+
+      - name: Stop emulator
+        if: always()
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          "$SDK/platform-tools/adb" emu kill || true
+
+      - name: Dump emulator output on failure
+        if: failure()
+        run: |
+          echo "===== emulator stdout (full) ====="; cat "${{ github.workspace }}/emulator_stdout.txt" 2>/dev/null || echo "(none)"
+          echo "===== logcat (tail) ====="; tail -n 300 "${{ github.workspace }}/emulator_logcat.txt" 2>/dev/null || echo "(none)"
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: instrumented-test-report-emulator-preview-${{ matrix.api-level }}
+          path: app/build/reports/androidTests/
+
+  # ── Experiment: snapshot save/restore of the running game on the preview
+  # emulator. Four boot cycles WITHOUT -no-snapshot: cycle 1 launches the game
+  # with Auto Play, every cycle shuts down gracefully (adb emu kill) so the
+  # emulator saves a snapshot, and later cycles check the game came back by
+  # itself: still running, still drawing, and still scoring. The app is never
+  # relaunched after a restore: that is the thing being measured.
+  emulator-preview-multirun:
+    name: Emulator Preview multi-run (emulators/latest, API 37.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Set up Android Emulator Preview
+        uses: ./.github/actions/preview-emulator
+
+      # For `android layout`, which reads the HUD: the score is the proof the
+      # game is still playing after a restore.
+      - name: Install Android CLI
+        run: |
+          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Snapshot multi-run cycle
+        timeout-minutes: 25
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          export PATH="$SDK/platform-tools:$PATH"
+          PKG=com.jpcottin.composebreakout
+          ACT=com.jpcottin.composebreakout.MainActivity
+          WSDIR="${{ github.workspace }}"
+          mkdir -p "$WSDIR/screenshots"
+          SELF_PGID="$(ps -o pgid= -p $$ | tr -d ' ')"
+          LAST_SCORE=-1
+
+          # The HUD's score, read from the layout tree ("Score N").
+          read_score() {
+            local n=""
+            for _ in $(seq 1 15); do
+              android layout -o "$WSDIR/layout_run$1.json" >/dev/null 2>&1 || true
+              n="$(grep -o '"Score [0-9]*"' "$WSDIR/layout_run$1.json" 2>/dev/null | head -1 | grep -o '[0-9]*')"
+              [ -n "$n" ] && break
+              sleep 1
+            done
+            echo "${n:--1}"
+          }
+
+          boot_and_play() {  # $1 = run number
+            N="$1"
+            echo "================ RUN $N: launching emulator (snapshots enabled) ================"
+            setsid "$SDK/emulators/latest/emulator" @test -no-window -gpu auto -noaudio -no-boot-anim -camera-back none -memory 4096 -verbose -show-kernel -debug-metrics -metrics-collection > "$WSDIR/emulator_run$N.txt" 2>&1 &
+            EMU_PID=$!
+            EMU_PGID=""
+            for _ in $(seq 1 20); do
+              P="$(ps -o pgid= -p "$EMU_PID" 2>/dev/null | tr -d ' ')"
+              if [ -n "$P" ] && [ "$P" != "$SELF_PGID" ]; then EMU_PGID="$P"; break; fi
+              kill -0 "$EMU_PID" 2>/dev/null || break
+              sleep 0.5
+            done
+            tail -F "$WSDIR/emulator_run$N.txt" &
+            TAIL_PID=$!
+            for _ in $(seq 1 36); do
+              kill -0 "$EMU_PID" 2>/dev/null || { echo "ERROR: emulator process exited early (run $N)"; tail -40 "$WSDIR/emulator_run$N.txt"; exit 1; }
+              timeout 10 adb get-state >/dev/null 2>&1 && break
+              sleep 5
+            done
+            timeout 10 adb get-state >/dev/null 2>&1 || { echo "ERROR: no device after 180s (run $N)"; tail -40 "$WSDIR/emulator_run$N.txt"; exit 1; }
+            for _ in $(seq 1 48); do
+              [ "$(timeout 15 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
+              sleep 10
+            done
+            if [ "$(timeout 15 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; then
+              echo "===== boot timeout (run $N) ====="; tail -60 "$WSDIR/emulator_run$N.txt" || true; exit 1
+            fi
+            kill "$TAIL_PID" 2>/dev/null || true
+
+            if [ "$N" = "1" ]; then
+              adb shell settings put global hide_error_dialogs 1 || true
+              adb install -r app/build/outputs/apk/debug/app-debug.apk
+              adb shell input keyevent KEYCODE_WAKEUP || true
+              adb shell wm dismiss-keyguard || true
+              # The only launch in the whole job: Auto Play from the start.
+              adb shell am start -n "$PKG/$ACT" --ez autoplay true || true
+              for _ in $(seq 1 15); do
+                APP_PID="$(timeout 15 adb shell pidof "$PKG" 2>/dev/null | tr -d '\r')"
+                [ -n "$APP_PID" ] && break
+                sleep 1
+              done
+              echo "RUN $N app pid after launch: ${APP_PID:-none}"
+            else
+              adb exec-out screencap -p > "$WSDIR/screenshots/run$N-entry.png" || true
+              APP_PID="$(timeout 15 adb shell pidof "$PKG" 2>/dev/null | tr -d '\r')"
+              if [ -n "$APP_PID" ]; then
+                echo "RUN $N app survived restore: YES (pid $APP_PID)"
+              else
+                echo "RUN $N app survived restore: NO (process gone; left as-is)"
+              fi
+              ENTRY="$(read_score "${N}-entry")"
+              echo "RUN $N score on entry: $ENTRY (previous exit: $LAST_SCORE)"
+              if [ "$ENTRY" -ge 0 ] && [ "$ENTRY" -ge "$LAST_SCORE" ]; then
+                echo "RUN $N game state survived restore: YES"
+              else
+                echo "RUN $N game state survived restore: NO"
+              fi
+            fi
+            # Let Auto Play play for a while.
+            sleep 20
+            echo "RUN $N app pid before kill: $(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r' || echo none)"
+            adb logcat -d -t 500 > "$WSDIR/logcat_run$N.txt" 2>/dev/null || true
+            FOCUS="$(timeout 15 adb shell dumpsys window 2>/dev/null | grep -ciE "ocus.*composebreakout" || echo 0)"
+            SCORE="$(read_score "$N")"
+            if [ -n "${APP_PID:-}" ] && [ "$FOCUS" -gt 0 ] && [ "$SCORE" -ge 0 ]; then
+              echo "RUN $N rendering: YES (focused window, score $SCORE)"
+            else
+              echo "RUN $N rendering: NO (pid='${APP_PID:-}' focus=$FOCUS score=$SCORE)"
+            fi
+            LAST_SCORE="$SCORE"
+            adb exec-out screencap -p > "$WSDIR/screenshots/run$N.png" || true
+            echo "RUN $N exit screenshot: $(stat -c %s "$WSDIR/screenshots/run$N.png" 2>/dev/null || echo 0) bytes"
+
+            T_KILL=$(date +%s)
+            echo "RUN $N: requesting shutdown via adb emu kill"
+            adb emu kill || true
+            for _ in $(seq 1 90); do
+              kill -0 "$EMU_PID" 2>/dev/null || break
+              sleep 1
+            done
+            if kill -0 "$EMU_PID" 2>/dev/null; then
+              echo "WARNING: emulator still up 90s after 'adb emu kill'; terminating it"
+              if [ -n "$EMU_PGID" ]; then kill -TERM -- "-$EMU_PGID" 2>/dev/null || true; else kill "$EMU_PID" 2>/dev/null || true; fi
+              sleep 10
+            fi
+            if [ -n "$EMU_PGID" ]; then
+              for _ in $(seq 1 120); do
+                kill -0 -- "-$EMU_PGID" 2>/dev/null || break
+                sleep 1
+              done
+              if kill -0 -- "-$EMU_PGID" 2>/dev/null; then
+                echo "WARNING: emulator process group $EMU_PGID still alive after 120s:"
+                ps -o pid=,cmd= -g "$EMU_PGID" 2>/dev/null || true
+                kill -KILL -- "-$EMU_PGID" 2>/dev/null || true
+                sleep 5
+              fi
+            fi
+            echo "RUN $N: all emulator processes gone $(( $(date +%s) - T_KILL ))s after the kill request"
+            echo "===== RUN $N snapshot-related emulator log lines ====="
+            grep -inE "snapshot|quickboot" "$WSDIR/emulator_run$N.txt" | tail -15 || echo "(none)"
+            sleep 3
+          }
+
+          boot_and_play 1
+          boot_and_play 2
+          boot_and_play 3
+          boot_and_play 4
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: preview-multirun-screenshots
+          path: screenshots/
+          if-no-files-found: warn
+
+      - name: Upload emulator logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: preview-multirun-emulator-logs
+          path: |
+            emulator_run*.txt
+            logcat_run*.txt
+            layout_run*.json
+          if-no-files-found: warn
+
+  # ── Experiment: the same snapshot cycle driven by the Android CLI against the
+  # canary emulator. `android emulator start` cannot target emulators/latest,
+  # so this reads as a comparison against the preview job.
+  android-cli-multirun:
+    name: Android CLI multi-run (canary emulator, API 37.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Install Android CLI
+        run: |
+          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install canary emulator and API 37.0 ps16k image with the CLI
+        run: |
+          android sdk install --canary emulator platform-tools system-images/android-37.0/google_apis_ps16k/x86_64
+          android sdk list | grep -iE "^  emulator|android-37" || true
+
+      - name: Create AVD with the CLI and retarget it to API 37.0 ps16k
+        run: |
+          android emulator create medium_phone
+          DEVICE="$(android emulator list | head -n1)"
+          AVD_DIR="$HOME/.android/avd/$DEVICE.avd"
+          if [ -z "$DEVICE" ] || [ ! -d "$AVD_DIR" ]; then
+            echo "ERROR: created AVD not found (DEVICE='$DEVICE')"; ls -la "$HOME/.android/avd/" || true; exit 1
+          fi
+          CFG="$AVD_DIR/config.ini"
+          set_ini() {
+            if grep -q "^$1=" "$CFG"; then sed -i "s#^$1=.*#$1=$2#" "$CFG"; else echo "$1=$2" >> "$CFG"; fi
+          }
+          sed -i 's/^target=.*/target=android-37.0/' "$HOME/.android/avd/$DEVICE.ini"
+          set_ini image.sysdir.1 'system-images/android-37.0/google_apis_ps16k/x86_64/'
+          set_ini tag.id google_apis
+          set_ini tag.display 'Google APIs'
+          set_ini PlayStore.enabled false
+          set_ini hw.ramSize 4096
+          set_ini hw.cpu.ncore 4
+          set_ini disk.dataPartition.size 8192M
+          if grep -q '^tag.ids=' "$CFG"; then sed -i 's/^tag.ids=.*/tag.ids=google_apis,page_size_16kb/' "$CFG"; fi
+          if grep -q '^tag.displaynames=' "$CFG"; then sed -i 's/^tag.displaynames=.*/tag.displaynames=Google APIs,16 KB Page Size/' "$CFG"; fi
+          echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
+
+      - name: Install emulator host dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libpulse0 xvfb
+          Xvfb :99 -screen 0 1280x800x24 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Snapshot multi-run cycle with the Android CLI
+        timeout-minutes: 30
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          export PATH="$SDK/platform-tools:$PATH"
+          PKG=com.jpcottin.composebreakout
+          ACT=com.jpcottin.composebreakout.MainActivity
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          WS="${{ github.workspace }}"
+          mkdir -p "$WS/screenshots"
+          LAST_SCORE=-1
+
+          read_score() {
+            local n=""
+            for _ in $(seq 1 15); do
+              android layout -o "$WS/layout_cycle$1.json" >/dev/null 2>&1 || true
+              n="$(grep -o '"Score [0-9]*"' "$WS/layout_cycle$1.json" 2>/dev/null | head -1 | grep -o '[0-9]*')"
+              [ -n "$n" ] && break
+              sleep 1
+            done
+            echo "${n:--1}"
+          }
+
+          cycle() {
+            N="$1"
+            echo "================ CYCLE $N ================"
+            android emulator start "$DEVICE" || true
+            for _ in $(seq 1 60); do adb get-state >/dev/null 2>&1 && break; sleep 2; done
+            adb get-state >/dev/null 2>&1 || { echo "ERROR: no device (cycle $N)"; cat "$HOME/.android/$DEVICE/emulator.log" 2>/dev/null | tail -40; return 1; }
+            for _ in $(seq 1 60); do
+              [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break
+              sleep 5
+            done
+
+            if [ "$N" = 1 ]; then
+              adb shell settings put global hide_error_dialogs 1 || true
+              adb install -r "$APK"
+              adb shell am start -n "$PKG/$ACT" --ez autoplay true || true
+              for _ in $(seq 1 15); do
+                PID="$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r')"; [ -n "$PID" ] && break; sleep 1
+              done
+              echo "CYCLE $N app pid after launch: ${PID:-none}"
+            else
+              android screen capture -o "$WS/screenshots/cycle$N-entry.png" || true
+              PID="$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r')"
+              if [ -n "$PID" ]; then echo "CYCLE $N app survived restore: YES (pid $PID)"; else echo "CYCLE $N app survived restore: NO (process gone; left as-is)"; fi
+              ENTRY="$(read_score "${N}-entry")"
+              echo "CYCLE $N score on entry: $ENTRY (previous exit: $LAST_SCORE)"
+              if [ "$ENTRY" -ge 0 ] && [ "$ENTRY" -ge "$LAST_SCORE" ]; then echo "CYCLE $N game state survived restore: YES"; else echo "CYCLE $N game state survived restore: NO"; fi
+            fi
+            echo "cycle $N: ${PID:-none}" >> "$WS/pids.txt"
+            sleep 20
+            SCORE="$(read_score "$N")"
+            if [ -n "${PID:-}" ] && [ "$SCORE" -ge 0 ]; then echo "CYCLE $N rendering: YES (score $SCORE)"; else echo "CYCLE $N rendering: NO (pid='${PID:-}' score=$SCORE)"; fi
+            LAST_SCORE="$SCORE"
+            android screen capture -o "$WS/screenshots/cycle$N.png" || true
+            adb logcat -d -t 500 > "$WS/logcat_cycle$N.txt" 2>/dev/null || true
+
+            android emulator stop "$DEVICE" || true
+            for _ in $(seq 1 60); do adb get-state >/dev/null 2>&1 || break; sleep 2; done
+            sleep 3
+          }
+
+          cycle 1; cycle 2; cycle 3; cycle 4
+
+          echo "================ RESULT ================"
+          echo "app pid per cycle:"; sed 's/^/  /' "$WS/pids.txt"
+          echo "snapshot activity in the emulator log:"
+          grep -aiE "Loading snapshot|Saving snapshot|Snapshot '.*' (loaded|saved)" \
+            "$HOME/.android/$DEVICE/emulator.log" 2>/dev/null | sed 's/^/  /' || echo "  (none found)"
+          cp "$HOME/.android/$DEVICE/emulator.log" "$WS/cli_emulator.log" 2>/dev/null || true
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-multirun-screenshots
+          path: screenshots/
+          if-no-files-found: warn
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-multirun-logs
+          path: |
+            cli_emulator.log
+            logcat_cycle*.txt
+            layout_cycle*.json
+            pids.txt
+          if-no-files-found: warn
