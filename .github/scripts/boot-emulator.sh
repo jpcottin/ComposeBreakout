@@ -95,6 +95,18 @@ echo "===== AVD config.ini ====="; cat "$CONFIG"
 # Cold boot, no snapshot, a large userdata partition so the APK can stage,
 # and adb held off until boot completes (-delay-adb): a device that goes
 # offline mid-boot used to fail a leg.
+# The emulator pre-authorises the host's adb key by reading
+# ~/.android/adbkey.pub when the guest's adbd comes up. On a fresh runner
+# no key exists until adb first runs, and this script's first adb call is
+# the boot poll, after the launch: whether the key was there in time was
+# a race, lost as "emulator-5554 unauthorized" and a 15-minute timeout.
+# So the key is made before the launch.
+if [ ! -f "$HOME/.android/adbkey.pub" ]; then
+    mkdir -p "$HOME/.android"
+    adb keygen "$HOME/.android/adbkey" >/dev/null 2>&1 || true
+fi
+adb start-server >/dev/null 2>&1 || true
+ls -la "$HOME/.android/adbkey.pub" 2>&1
 "$SDK/emulator/emulator" -version 2>/dev/null | head -1
 "$SDK/emulator/emulator" -accel-check 2>&1 | head -5
 # shellcheck disable=SC2086
