@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -63,6 +64,7 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.LocalActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.window.core.layout.WindowSizeClass
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jpcottin.composebreakout.R
 import com.jpcottin.composebreakout.engine.Game
@@ -107,21 +109,34 @@ fun GameScreen(viewModel: GameViewModel) {
         glasses = onGlasses,
     )
     if (showSettings) {
-        SettingsSheet(
+        val glassesState = when {
+            glassesActive -> GlassesState.ACTIVE
+            glassesConnected -> GlassesState.CONNECTED
+            else -> GlassesState.NONE
+        }
+        val onGlassesToggle = {
+            if (glassesActive) GlassesSession.bringBack()
+            else if (activity != null) GlassesSession.launch(activity)
+            showSettings = false
+        }
+        // A phone gets a sheet sliding up from the thumb; a wide window (a
+        // tablet, a TV, an XR panel) a card in the middle of the screen.
+        val wide = currentWindowAdaptiveInfo().windowSizeClass
+            .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)
+        if (wide) SettingsDialog(
             settings = settings,
             onSoundChange = viewModel::setSoundEnabled,
             onAutoPlayChange = viewModel::setAutoPlay,
             onDismiss = { showSettings = false },
-            glasses = when {
-                glassesActive -> GlassesState.ACTIVE
-                glassesConnected -> GlassesState.CONNECTED
-                else -> GlassesState.NONE
-            },
-            onGlassesToggle = {
-                if (glassesActive) GlassesSession.bringBack()
-                else if (activity != null) GlassesSession.launch(activity)
-                showSettings = false
-            },
+            glasses = glassesState,
+            onGlassesToggle = onGlassesToggle,
+        ) else SettingsSheet(
+            settings = settings,
+            onSoundChange = viewModel::setSoundEnabled,
+            onAutoPlayChange = viewModel::setAutoPlay,
+            onDismiss = { showSettings = false },
+            glasses = glassesState,
+            onGlassesToggle = onGlassesToggle,
         )
     }
 }
