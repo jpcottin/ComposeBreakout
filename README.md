@@ -14,7 +14,7 @@ bench run on any JVM in seconds. Sibling of
 with a hand-written Vulkan renderer.
 
 > **Status:** the game is playable — ten levels, the four bonuses, the
-> high-score table, the end screens. The Auto Play autopilot, the adaptive
+> high-score table, the end screens — and Auto Play wins it. The adaptive
 > inputs (D-pad, tabletop), the sounds and the glasses mode land in the next
 > pull requests.
 
@@ -34,6 +34,16 @@ with a hand-written Vulkan renderer.
 - **Scoring:** 10 / 20 / 30 points per brick kind times the level, 25 times
   the level per bonus, 100 times the level per cleared wall. The top five
   scores are kept; the top three show on the title screen.
+- **Auto Play** (Settings): the autopilot plays the round. It works out
+  where each ball comes down, gets the paddle there, and picks *where on
+  the paddle* to take it so the rebound does the most damage: every
+  candidate hit offset is flown against the wall with the real collision
+  rules, scored by bricks hit per second of flight, and rejected when its
+  own landing could not be caught in time. A rebound that hits nothing is
+  judged one trip further, so the last brick in a corner still gets
+  reached. Predictions are cached per ball and redone only on a bounce.
+  Capsules are collected when the detour leaves time to be back under the
+  ball. The gear turns green while it plays.
 
 ## Modules
 
@@ -77,6 +87,21 @@ with a hand-written Vulkan renderer.
   themed icons, and a TV banner with the name set in a bitmap block font.
 - AGP 9, Kotlin 2.4, Compose BOM 2026.09, `minSdk 26`, `compileSdk 37`.
 
+## The Auto Play bench
+
+The engine's `main` plays seeded, headless rounds with the autopilot and
+reports how often it clears each level, how long it takes and how many
+balls it loses. Every Auto Play change is measured here before it ships:
+
+```bash
+./gradlew :engine:run --args="--runs 100 --levels --campaigns"        # portrait phone
+./gradlew :engine:run --args="--width 2400 --height 1080 --runs 50 --campaigns"
+./gradlew :engine:run --args="--runs 1 --levels --trace"              # the scene at every lost ball
+```
+
+CI runs it with `--min-campaign-win 95` on a portrait phone and a landscape
+screen: fewer than 95% of campaigns won fails the build.
+
 ## Build & run
 
 ```bash
@@ -114,6 +139,7 @@ merges.
 | Job | What it does | Artifacts |
 |-----|-------------|-----------|
 | **Build, lint, tests, screenshots** | Engine JUnit tests, Android lint, app unit tests, Compose preview screenshot validation, debug APK | `debug-apk`, `screenshot-test-report` on failure |
+| **Auto Play bench** | Seeded campaigns with the autopilot on a portrait phone (100) and a landscape screen (50); fails under a 95% campaign win rate | — |
 | **Instrumented** | Launches the activity on three emulators — a phone (API 34), a foldable (API 36, `7.6in Foldable`) and a TV (API 36, `android-tv`) — and checks the title and the settings sheet | test report on failure |
 
 ## License
