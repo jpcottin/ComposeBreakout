@@ -52,6 +52,9 @@ class Game(private val host: GameHost = GameHost.None) {
     class Ball internal constructor(var x: Float, var y: Float, var dx: Float, var dy: Float) {
         var alive = true
             internal set
+        /** Seconds in flight since this ball last touched a brick. */
+        var dry = 0f
+            internal set
     }
 
     class PowerUp internal constructor(var x: Float, var y: Float, val type: PowerUpType) {
@@ -721,6 +724,7 @@ class Game(private val host: GameHost = GameHost.None) {
 
         for (b in ballsList) {
             if (!b.alive) continue
+            b.dry += dt
             var s = 0
             while (s < steps && b.alive) {
                 s++
@@ -758,6 +762,7 @@ class Game(private val host: GameHost = GameHost.None) {
                     }
                     ensureMinDy(b)
                     hitBrick(br)
+                    b.dry = 0f
                     break
                 }
 
@@ -1022,6 +1027,15 @@ class Game(private val host: GameHost = GameHost.None) {
                 // last ones instead of shuttling an empty lane.
                 score += 0.8f * best2 + 0.10f * abs(next.x - plan.land.x) + 0.05f * abs(uReal)
                 if (best2 == 0f) score += 0.3f * (1f - next.closest.coerceIn(0f, 1f))
+                // A ball that has not touched a brick for a while is
+                // shuttling a lane the wall no longer reaches into (the last
+                // bricks sit behind steel, or off in a corner). Break the
+                // pattern: the rebound that carries it furthest sideways
+                // wins outright, a vertical shuttle under a shielded brick
+                // can never score.
+                if (best2 == 0f && b.dry > AI_STALL_SECONDS && next.lands) {
+                    score += AI_STALL_BONUS * abs(next.x - plan.land.x) / fieldHalfWidth
+                }
             } else {
                 score -= 0.02f * abs(uReal)
             }
@@ -1256,6 +1270,8 @@ class Game(private val host: GameHost = GameHost.None) {
          *  toss the simulation cannot call. */
         private val AI_OFFSETS = floatArrayOf(-0.85f, -0.60f, -0.35f, -0.16f, 0.16f, 0.35f, 0.60f, 0.85f)
         private const val AI_MIN_OFFSET = 0.16f
+        private const val AI_STALL_SECONDS = 6f     // flight without a brick before the pattern is broken
+        private const val AI_STALL_BONUS = 2f
 
         /** Brick colours by row as (r, g, b): the debris takes the row's colour. */
         val ROW_COLORS: List<FloatArray> = listOf(

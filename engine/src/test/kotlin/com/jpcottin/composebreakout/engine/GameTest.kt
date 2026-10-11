@@ -329,6 +329,22 @@ class PaddleControlTest {
 // ── Ball physics ─────────────────────────────────────────────────────────────
 
 class BallTest {
+    @Test fun aBallCountsItsFlightSinceTheLastBrick() {
+        val g = newGame()
+        g.debug.startGame()
+        g.debug.setBall(0f, 0.5f, 0f, 1f)                // heading down, away from the wall
+        g.debug.setPaddleX(0f)
+        step(g, 0.5f)
+        val b = g.balls.first()
+        assertTrue("dry ${b.dry}", b.dry > 0.4f)
+        g.debug.setBall(0f, -0.2f, 0f, -1f)              // straight up into the wall
+        val fresh = g.balls.first()
+        val before = g.bricksBroken
+        step(g, 1.5f)
+        assertTrue(g.bricksBroken > before)
+        assertTrue("dry ${fresh.dry} should have reset on the hit", fresh.dry < 1.5f)
+    }
+
     @Test fun bouncesOffTheSideWalls() {
         val g = playing()
         g.debug.setBall(0.40f, 0.0f, 1f, 0f)
