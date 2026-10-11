@@ -18,6 +18,8 @@
     <string name="settings">Réglages</string>
     <string name="settings_sound">Son</string>
     <string name="settings_sound_hint">Les effets et la musique d\'ambiance</string>
+    <string name="settings_haptics">Vibrations</string>
+    <string name="settings_haptics_hint">Un tic par brique, un clic par balle perdue</string>
     <string name="settings_auto_play">Pilote automatique</string>
     <string name="settings_auto_play_hint">Le pilote joue la partie à votre place</string>
     <string name="settings_done">OK</string>

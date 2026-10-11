@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SmartToy
+import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Button
@@ -50,10 +51,14 @@ fun SettingsSheet(
     onDismiss: () -> Unit,
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
+    onHapticsChange: (Boolean) -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        SettingsContent(settings, onSoundChange, onAutoPlayChange, onDismiss, glasses = glasses, onGlassesToggle = onGlassesToggle)
+        SettingsContent(
+            settings, onSoundChange, onAutoPlayChange, onDismiss,
+            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange,
+        )
     }
 }
 
@@ -69,9 +74,13 @@ fun SettingsDialog(
     onDismiss: () -> Unit,
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
+    onHapticsChange: (Boolean) -> Unit = {},
 ) {
     Dialog(onDismissRequest = onDismiss) {
-        SettingsCard(settings, onSoundChange, onAutoPlayChange, onDismiss, glasses = glasses, onGlassesToggle = onGlassesToggle)
+        SettingsCard(
+            settings, onSoundChange, onAutoPlayChange, onDismiss,
+            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange,
+        )
     }
 }
 
@@ -85,6 +94,7 @@ fun SettingsCard(
     modifier: Modifier = Modifier,
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
+    onHapticsChange: (Boolean) -> Unit = {},
 ) {
     Surface(
         modifier = modifier.width(480.dp),
@@ -95,7 +105,7 @@ fun SettingsCard(
         SettingsContent(
             settings, onSoundChange, onAutoPlayChange, onDone,
             modifier = Modifier.padding(top = 16.dp),
-            glasses = glasses, onGlassesToggle = onGlassesToggle,
+            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange,
         )
     }
 }
@@ -110,6 +120,7 @@ fun SettingsContent(
     modifier: Modifier = Modifier,
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
+    onHapticsChange: (Boolean) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(
@@ -124,6 +135,13 @@ fun SettingsContent(
             hint = stringResource(R.string.settings_sound_hint),
             checked = settings.soundEnabled,
             onCheckedChange = onSoundChange,
+        )
+        SettingRow(
+            icon = Icons.Rounded.Vibration,
+            title = stringResource(R.string.settings_haptics),
+            hint = stringResource(R.string.settings_haptics_hint),
+            checked = settings.haptics,
+            onCheckedChange = onHapticsChange,
         )
         SettingRow(
             icon = Icons.Rounded.SmartToy,

@@ -18,6 +18,8 @@
     <string name="settings">Settings</string>
     <string name="settings_sound">Sound</string>
     <string name="settings_sound_hint">Effects and the ambient track</string>
+    <string name="settings_haptics">Haptics</string>
+    <string name="settings_haptics_hint">A tick per brick, a click per lost ball</string>
     <string name="settings_auto_play">Auto Play</string>
     <string name="settings_auto_play_hint">The autopilot plays the round for you</string>
     <string name="settings_done">Done</string>

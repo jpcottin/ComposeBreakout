@@ -37,6 +37,7 @@ private val Context.settingsStore: DataStore<Preferences> by preferencesDataStor
 data class Settings(
     val soundEnabled: Boolean = true,
     val autoPlay: Boolean = false,
+    val haptics: Boolean = true,
 )
 
 /**
@@ -73,6 +74,7 @@ class GameViewModel(
         Settings(
             soundEnabled = prefs[KEY_SOUND] ?: true,
             autoPlay = prefs[KEY_AUTO_PLAY] ?: false,
+            haptics = prefs[KEY_HAPTICS] ?: true,
         )
     }
 
@@ -104,6 +106,7 @@ class GameViewModel(
             val prefs = store.data.first()
             game.soundEnabled = prefs[KEY_SOUND] ?: true
             game.autoPlayActive = prefs[KEY_AUTO_PLAY] ?: false
+            hapticsEnabled = prefs[KEY_HAPTICS] ?: true
             game.restoreHighScores(decodeScores(prefs[KEY_HIGH_SCORES]))
             // A launch asked for an unattended round: Auto Play on, round
             // started. It comes after the settings load so the stored switch
@@ -125,6 +128,14 @@ class GameViewModel(
         viewModelScope.launch { store.edit { it[KEY_AUTO_PLAY] = on } }
     }
 
+    /** Whether the vibrator speaks at all: the Haptics switch in Settings. */
+    @Volatile private var hapticsEnabled = true
+
+    fun setHaptics(on: Boolean) {
+        hapticsEnabled = on
+        viewModelScope.launch { store.edit { it[KEY_HAPTICS] = on } }
+    }
+
     /** Auto Play on and a round started: the game plays itself from here. */
     fun startUnattendedRound() {
         setAutoPlay(true)
@@ -142,7 +153,7 @@ class GameViewModel(
         audio.synth.brickBreak(hz)
         // A light tick under the finger for every brick, the heavy click
         // staying for a lost ball; both only when the effect exists.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tick?.let { vibrator?.vibrate(it) }
+        if (hapticsEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tick?.let { vibrator?.vibrate(it) }
     }
 
     private val tick: VibrationEffect? =
@@ -153,7 +164,7 @@ class GameViewModel(
 
     override fun haptic() {
         val v = vibrator ?: return
-        if (!v.hasVibrator()) return
+        if (!hapticsEnabled || !v.hasVibrator()) return
         val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
             VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
         else VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)
@@ -175,6 +186,7 @@ class GameViewModel(
     companion object {
         private val KEY_SOUND = booleanPreferencesKey("sound")
         private val KEY_AUTO_PLAY = booleanPreferencesKey("auto_play")
+        private val KEY_HAPTICS = booleanPreferencesKey("haptics")
         private val KEY_HIGH_SCORES = stringPreferencesKey("high_scores")
         private const val KEY_SESSION = "session"
         /** Intent extra: start an Auto Play round as soon as the game is up. */
