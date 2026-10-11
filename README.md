@@ -209,9 +209,12 @@ with the references committed under `app/src/screenshotTestDebug/reference`.
 The engine is seeded and stepped deterministically, so each preview is the
 same picture every time.
 
-The instrumented test drives the real activity with a paused test clock
+The instrumented tests drive the real activity with a paused test clock
 (the game steps once per frame for as long as it is on screen, which the
-Compose test harness would otherwise read as "never idle").
+Compose test harness would otherwise read as "never idle"). One of them
+launches the activity the way the CI multi-runs and the launcher shortcut
+do, with the `autoplay` extra, and checks a round starts with the AUTO
+badge up and the ball launched by the autopilot.
 
 ## CI/CD
 
