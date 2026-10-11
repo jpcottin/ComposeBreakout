@@ -222,3 +222,37 @@ class AutoPlayTest {
         assertFalse(g.aiHasTarget)
     }
 }
+
+/** The bench's guard rests on seeded runs giving the same numbers every
+ *  time: the same seed must play the very same campaign twice. */
+class DeterminismTest {
+    private fun campaign(seed: Int, aspect: Float): Triple<Long, Int, Game.State> {
+        val g = Game().apply { setAspect(aspect); seed(seed); debug.startGame(); autoPlayActive = true }
+        var t = 0f
+        while (t < 400f && g.state != Game.State.WIN && g.state != Game.State.GAME_OVER) {
+            g.update(DT); t += DT
+            while (g.state == Game.State.LEVEL_CLEAR) g.update(DT)
+        }
+        return Triple(g.score, g.bricksBroken, g.state)
+    }
+
+    @Test fun theSameSeedPlaysTheSameCampaign() {
+        assertEquals(campaign(7, PHONE), campaign(7, PHONE))
+        assertEquals(campaign(7, 2.2f), campaign(7, 2.2f))
+    }
+
+    @Test fun differentSeedsPlayDifferentCampaigns() {
+        assertTrue(campaign(7, PHONE) != campaign(8, PHONE))
+    }
+
+    @Test fun theFrameSizeDoesNotChangeTheGame() {
+        // 60 Hz frames and 120 Hz frames land on the same ticks.
+        fun play(frame: Float): Pair<Long, Int> {
+            val g = Game().apply { setAspect(PHONE); seed(3); debug.startGame(); autoPlayActive = true }
+            var t = 0f
+            while (t < 30f) { g.update(frame); t += frame }
+            return g.score to g.bricksBroken
+        }
+        assertEquals(play(1f / 60f), play(1f / 120f))
+    }
+}
