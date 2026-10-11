@@ -49,6 +49,10 @@ glasses pictures are the screenshot tests' own renders.
   launches; Up reaches the gear, Down comes back. On a half-opened foldable
   the game sits above the hinge and the whole lower half is the steering
   surface.
+- **Pause:** a round in flight freezes when the screen goes away (the app
+  goes to the background, Settings opens) and waits for a tap — PAUSED,
+  then tap, OK or the touchbar to resume. The autopilot resumes by itself,
+  so an unattended run keeps going.
 - **Bonuses** drop from broken bricks: a wide paddle (10 s), a slow ball
   (8 s), multi-ball (every ball splits in three, up to six) and an extra
   life (up to nine). Five lives to start.

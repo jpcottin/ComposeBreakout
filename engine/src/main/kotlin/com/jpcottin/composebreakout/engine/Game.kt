@@ -96,6 +96,10 @@ class Game(private val host: GameHost = GameHost.None) {
     /** Seconds in the current LEVEL_CLEAR / GAME_OVER / WIN screen. */
     var stateTimer: Float = 0f
         private set
+    /** A round frozen mid-flight (the screen went away, Settings opened).
+     *  A tap resumes it; the autopilot resumes by itself. */
+    var paused: Boolean = false
+        private set
 
     // --- the wall ---
     private val bricksList = ArrayList<Brick>()
@@ -271,6 +275,18 @@ class Game(private val host: GameHost = GameHost.None) {
     /** A round is in progress (worth saving across process death). */
     val isMidGame: Boolean get() = state == State.PLAYING || state == State.LEVEL_CLEAR
 
+    /** The screen is going away or something covers it: freeze a round in
+     *  flight. Nothing to freeze on the title, a held serve or an end screen. */
+    fun pause() {
+        if (state == State.PLAYING && !ballHeld) paused = true
+    }
+
+    /** The screen is back. A human gets a "tap to resume" moment; the
+     *  autopilot, which nobody is watching anyway, carries on at once. */
+    fun resume() {
+        if (paused && autoPlayActive) paused = false
+    }
+
     // ── Input (world coordinates) ─────────────────────────────────────────────
 
     fun onPointerDown(id: Int, wx: Float, wy: Float) {
@@ -381,6 +397,7 @@ class Game(private val host: GameHost = GameHost.None) {
     }
 
     private fun startLevel(level: Int) {
+        paused = false
         this.level = Levels.clamp(level)
         buildWall(this.level)
         resetBattlefield()
@@ -526,6 +543,7 @@ class Game(private val host: GameHost = GameHost.None) {
         explosionsList.add(Explosion(paddleX, World.PADDLE_Y, World.PADDLE_HW * 0.6f, 0.25f, 1f, 0.35f, 0.30f))
         if (lives <= 0) {
             ballsList.clear()
+            paused = false
             state = State.GAME_OVER; stateTimer = 0f
             checkHighScore()
             return
@@ -565,6 +583,14 @@ class Game(private val host: GameHost = GameHost.None) {
 
         val tapped = tapPending
         tapPending = false
+
+        // A paused round waits for a tap; the clock above keeps the overlay
+        // breathing. A key or the autopilot steering does not resume it.
+        if (paused) {
+            if (state != State.PLAYING) paused = false
+            else if (tapped || (autoPlayActive && aiMove)) paused = false
+            else return
+        }
 
         when (state) {
             State.TITLE -> {

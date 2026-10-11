@@ -32,5 +32,9 @@
     <string name="on_glasses_hint">Settings brings the game back</string>
     <string name="touch_to_play">Touch the bar to play</string>
     <string name="touch_to_launch">TOUCH TO LAUNCH</string>
+    <string name="paused">PAUSED</string>
+    <string name="tap_to_resume">TAP TO RESUME</string>
+    <string name="press_to_resume">PRESS OK TO RESUME</string>
+    <string name="touch_to_resume">TOUCH TO RESUME</string>
     <string name="display_category_xr_projected" translatable="false">xr_projected</string>
 </resources>

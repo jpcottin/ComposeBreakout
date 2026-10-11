@@ -87,7 +87,11 @@ fun GameScreen(viewModel: GameViewModel) {
     // The speakers follow the activity: silent in the background.
     LifecycleResumeEffect(viewModel) {
         viewModel.audio.resume()
-        onPauseOrDispose { viewModel.audio.pause() }
+        viewModel.game.resume()
+        onPauseOrDispose {
+            viewModel.audio.pause()
+            viewModel.game.pause()
+        }
     }
     // The clock stops while the sheet is up: a round waits for the player.
     val glassesConnected by GlassesSession.connected.collectAsStateWithLifecycle()
@@ -97,7 +101,7 @@ fun GameScreen(viewModel: GameViewModel) {
     GameScreen(
         game = viewModel.game,
         settings = settings,
-        onOpenSettings = { showSettings = true },
+        onOpenSettings = { viewModel.game.pause(); showSettings = true },
         paused = showSettings,
         tabletop = !onGlasses && isTabletopPosture(),
         glasses = onGlasses,
@@ -239,6 +243,7 @@ fun GameScreen(
             Game.State.PLAYING, Game.State.LEVEL_CLEAR -> {
                 Hud(game, frame, chromePadding, textScale, autoPlay = settings.autoPlay)
                 if (game.state == Game.State.LEVEL_CLEAR) LevelClearOverlay(game, frame, textScale)
+                else if (game.paused) PausedOverlay(game, frame, hint, textScale)
                 else if (game.serveReady) LaunchHint(game, frame, hint, textScale)
             }
             Game.State.GAME_OVER -> EndScreen(game, frame, stringResource(R.string.game_over), Color(0x99990D14), textScale)
@@ -497,6 +502,33 @@ private fun LaunchHint(game: Game, frame: LongState, hint: InputHint, textScale:
         color = Color(0xFFA6CCFF).copy(alpha = 0.4f + 0.5f * pulse),
         modifier = Modifier.atWorld(0f, 0.45f),
     )
+}
+
+/** A round frozen mid-flight: the field dims, the word, the way back in. */
+@Composable
+private fun PausedOverlay(game: Game, frame: LongState, hint: InputHint, textScale: Float) {
+    observe(frame)
+    val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
+    Box(Modifier.fillMaxSize().background(Color(0x66060812))) {
+        Text(
+            text = stringResource(R.string.paused),
+            style = MaterialTheme.typography.displayMedium.scaled(textScale),
+            color = PaddleCyan,
+            modifier = Modifier.atWorld(0f, -0.05f).semantics { contentDescription = "Paused" },
+        )
+        Text(
+            text = stringResource(
+                when (hint) {
+                    InputHint.TOUCH -> R.string.tap_to_resume
+                    InputHint.KEYS -> R.string.press_to_resume
+                    InputHint.TOUCHBAR -> R.string.touch_to_resume
+                },
+            ),
+            style = MaterialTheme.typography.labelLarge.scaled(textScale),
+            color = Color(0xFFA6CCFF).copy(alpha = 0.4f + 0.5f * pulse),
+            modifier = Modifier.atWorld(0f, 0.45f),
+        )
+    }
 }
 
 /** The level just cleared, big and green, for the pause before the next one. */
