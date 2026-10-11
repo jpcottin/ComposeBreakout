@@ -18,6 +18,23 @@ with a hand-written Vulkan renderer.
 > phone, a foldable (open, closed or half-opened), a tablet, an XR panel, a
 > TV with a D-pad and a pair of AI Glasses.
 
+## Screenshots
+
+| Title | Auto Play, two balls up, the slow-ball bar | Game over, a new high score |
+|---|---|---|
+| <img src="docs/screenshots/phone-title.png" width="270" alt="Title screen: the demo wall, COMPOSE BREAKOUT, the demo ball and paddle"> | <img src="docs/screenshots/phone-play.png" width="270" alt="Level 1 in play with Auto Play on: two balls after a multi-ball pickup, the slow-ball timer bar in the control strip"> | <img src="docs/screenshots/phone-game-over.png" width="270" alt="Game over screen: rank #2, NEW HIGH SCORE, the score 1,980"> |
+
+| Settings | Foldable, half-opened: the control surface below the hinge |
+|---|---|
+| <img src="docs/screenshots/phone-settings_auto.png" width="270" alt="Settings sheet: Sound on, Auto Play on, Glasses row reading NONE"> | <img src="docs/screenshots/foldable-tabletop.png" width="420" alt="Tabletop posture: the lane in the upper half, SLIDE HERE TO STEER and the paddle marker in the lower half"> |
+
+| TV, 1080p, the lane in the middle | AI Glasses: black background, no gear |
+|---|---|
+| <img src="docs/screenshots/tv-playing.png" width="480" alt="TV: the lane centred with shaded margins, large HUD"> | <img src="docs/screenshots/glasses-playing.png" width="400" alt="The glasses' projected display: the lane on pure black, HUD at the corners"> |
+
+The phone captures come from an Android emulator; the foldable, TV and
+glasses pictures are the screenshot tests' own renders.
+
 ## The game
 
 - **Ten levels**, easy to hard: 4 rows of bricks at level 1, 9 at level 10,
