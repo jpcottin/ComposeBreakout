@@ -15,6 +15,7 @@
 #   EMULATOR_PORT                default 5554
 #   BOOT_TIMEOUT                 seconds to wait for the boot, default 900
 #   SKIP_INSTALL=1               the SDK already has the image, emulator and platform-tools
+#   AVD_BY_HAND=1                write the AVD's ini files without asking avdmanager
 #   EMULATOR_LOG                 where the emulator's own output goes
 set -u
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
@@ -36,10 +37,48 @@ if [ "${SKIP_INSTALL:-0}" != 1 ]; then
     done
 fi
 
-echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd --force -n "$AVD" \
-    --abi "${TAG}/${ABI}" --device "$PROFILE" --package "$PKG"
-CONFIG="${ANDROID_AVD_HOME:-$HOME/.android/avd}/$AVD.avd/config.ini"
-[ -f "$CONFIG" ] || { echo "ERROR: AVD not created ($CONFIG missing)"; exit 1; }
+IMGDIR="$SDK/system-images/android-${API_LEVEL}/${TARGET}/${ABI}"
+[ -f "$IMGDIR/system.img" ] || { echo "ERROR: no system image at $IMGDIR"; ls -la "$IMGDIR" 2>&1; exit 1; }
+AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+CONFIG="$AVD_HOME/$AVD.avd/config.ini"
+rm -rf "$AVD_HOME/$AVD.avd" "$AVD_HOME/$AVD.ini"
+if [ "${AVD_BY_HAND:-0}" != 1 ]; then
+    echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd --force -n "$AVD" \
+        --abi "${TAG}/${ABI}" --device "$PROFILE" --package "$PKG" 2>&1 || echo "avdmanager exit code: $?"
+fi
+if [ ! -f "$CONFIG" ]; then
+    # avdmanager has produced nothing at all on a runner, without a word:
+    # the AVD is then written by hand, the way the preview-emulator action
+    # does it. A TV profile gets a 1080p landscape panel, anything else a
+    # phone's portrait one.
+    echo "avdmanager produced no AVD; writing the ini files by hand"
+    case "$PROFILE" in
+        tv_*) W=1920; H=1080; DENSITY=320 ;;
+        *) W=1080; H=2400; DENSITY=420 ;;
+    esac
+    mkdir -p "$AVD_HOME/$AVD.avd"
+    printf 'avd.ini.encoding=UTF-8\npath=%s/%s.avd\npath.rel=avd/%s.avd\ntarget=android-%s\n' \
+        "$AVD_HOME" "$AVD" "$AVD" "$API_LEVEL" > "$AVD_HOME/$AVD.ini"
+    cat > "$CONFIG" << CFG
+AvdId=$AVD
+avd.ini.displayname=$AVD
+avd.ini.encoding=UTF-8
+abi.type=$ABI
+hw.cpu.arch=$ABI
+image.sysdir.1=system-images/android-${API_LEVEL}/${TARGET}/${ABI}/
+tag.id=$TAG
+tag.display=$TAG
+hw.device.name=$PROFILE
+PlayStore.enabled=no
+hw.lcd.density=$DENSITY
+hw.lcd.width=$W
+hw.lcd.height=$H
+hw.keyboard=yes
+hw.dPad=yes
+hw.gpu.enabled=yes
+hw.gpu.mode=auto
+CFG
+fi
 {
     echo "hw.ramSize=${RAM_SIZE%M}"
     [ -n "${CORES:-}" ] && echo "hw.cpu.ncore=${CORES}"
