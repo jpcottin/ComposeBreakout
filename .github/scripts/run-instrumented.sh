@@ -27,6 +27,9 @@ settle() {
     adb shell settings put global window_animation_scale 0
     adb shell settings put global transition_animation_scale 0
     adb shell settings put global animator_duration_scale 0
+    # A crash or ANR dialog from some other package would take the window
+    # focus, and a key sent to the app would go to the dialog instead.
+    adb shell settings put global hide_error_dialogs 1
     adb shell input keyevent 82
 }
 

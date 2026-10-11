@@ -2,6 +2,8 @@ package com.jpcottin.composebreakout
 
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -63,6 +65,26 @@ class GameScreenTest {
 
     private fun frames(count: Int) = composeTestRule.mainClock.advanceTimeBy(16L * count)
 
+    /** Focus the playfield and prove it has focus before a key goes in:
+     *  a key sent to an unfocused node is silently lost, and the failure
+     *  that follows would point at the game instead of at the focus. */
+    private fun focusThePlayfield(): SemanticsNodeInteraction {
+        val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
+        for (attempt in 1..5) {
+            playfield.performSemanticsAction(SemanticsActions.RequestFocus)
+            frames(2)
+            if (runCatching { playfield.assertIsFocused() }.isSuccess) break
+        }
+        playfield.assertIsFocused()
+        return playfield
+    }
+
+    /** Step frames until [condition] holds, up to [maxFrames]. */
+    private fun stepUntil(maxFrames: Int, condition: () -> Boolean) {
+        var left = maxFrames
+        while (left > 0 && !condition()) { frames(1); left-- }
+    }
+
     @Test
     fun titleIsShownOnLaunch() {
         frames(5)
@@ -106,12 +128,10 @@ class GameScreenTest {
     @Test
     fun dPadStartsTheRoundAndSteers() {
         frames(5)
-        val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
-        playfield.performSemanticsAction(SemanticsActions.RequestFocus)
-        frames(2)
+        val playfield = focusThePlayfield()
         playfield.performKeyInput { keyDown(Key.DirectionCenter); keyUp(Key.DirectionCenter) }   // start the round
-        frames(5)
         val game = game()
+        stepUntil(10) { game.state == Game.State.PLAYING }
         assertEquals(Game.State.PLAYING, game.state)
         playfield.performKeyInput { keyDown(Key.DirectionRight) }
         frames(20)
@@ -168,16 +188,15 @@ class GameScreenTest {
     @Test
     fun escapeFreezesTheRoundAndFreesItAgain() {
         val game = launchARound()
-        val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
-        playfield.performSemanticsAction(SemanticsActions.RequestFocus)
-        frames(2)
+        val playfield = focusThePlayfield()
         playfield.performKeyInput { keyDown(Key.Escape); keyUp(Key.Escape) }
-        frames(2)
-        assertTrue(game.paused)
+        stepUntil(10) { game.paused }
+        assertTrue("Escape should have paused the round", game.paused)
+        frames(2)                                                    // the overlay follows the flag by a frame
         composeTestRule.onNodeWithContentDescription("Paused").assertIsDisplayed()
         playfield.performKeyInput { keyDown(Key.Escape); keyUp(Key.Escape) }
-        frames(5)
-        assertFalse(game.paused)
+        stepUntil(10) { !game.paused }
+        assertFalse("Escape again should have resumed it", game.paused)
         assertEquals(Game.State.PLAYING, game.state)
     }
 
