@@ -100,9 +100,11 @@ glasses pictures are the screenshot tests' own renders.
 
 ## Tech
 
-- **Jetpack Compose + Material 3** — a `ModalBottomSheet` for Settings with
-  `Switch` rows, `IconButton`s, Material typography and a fixed dark colour
-  scheme (`theme/`).
+- **Jetpack Compose + Material 3** — Settings is a `ModalBottomSheet` on a
+  phone and a centred dialog card on an expanded window (a tablet, a TV, an
+  XR panel), chosen from the window size class; `Switch` rows,
+  `IconButton`s, Material typography and a fixed dark colour scheme
+  (`theme/`).
 - **One `Canvas`, one world** — the engine keeps world coordinates (x in
   [-aspect, aspect], y in [-1, 1], y down); the canvas maps them with one
   scale around the centre, so a world unit is square on every screen and the

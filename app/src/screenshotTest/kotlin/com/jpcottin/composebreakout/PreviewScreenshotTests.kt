@@ -3,7 +3,11 @@ package com.jpcottin.composebreakout
 import android.content.res.Configuration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
@@ -14,6 +18,7 @@ import com.jpcottin.composebreakout.ui.GameScreen
 import com.jpcottin.composebreakout.ui.GlassesState
 import com.jpcottin.composebreakout.ui.LevelsGallery
 import com.jpcottin.composebreakout.ui.Settings
+import com.jpcottin.composebreakout.ui.SettingsCard
 import com.jpcottin.composebreakout.ui.SettingsContent
 
 /*
@@ -230,6 +235,21 @@ fun SettingsGlassesActiveScreenshot() {
 }
 
 // ── Settings ─────────────────────────────────────────────────────────────────
+
+@PreviewTest
+@Preview(name = "Settings card", widthDp = 640, heightDp = 480, showBackground = true, backgroundColor = 0xFF080A17)
+@Composable
+fun SettingsCardScreenshot() {
+    BreakoutTheme {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            SettingsCard(
+                settings = Settings(soundEnabled = true, autoPlay = false),
+                onSoundChange = {}, onAutoPlayChange = {}, onDone = {},
+                glasses = GlassesState.CONNECTED,
+            )
+        }
+    }
+}
 
 @PreviewTest
 @Preview(name = "Settings", widthDp = 400, heightDp = 440, showBackground = true)
