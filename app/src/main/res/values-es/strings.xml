@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Compose Breakout</string>
+    <string name="title_line">BREAKOUT</string>
+    <string name="tap_to_play">Toca para jugar</string>
+    <string name="press_to_play">Pulsa OK para jugar</string>
+    <string name="tap_to_launch">TOCA PARA LANZAR</string>
+    <string name="press_to_launch">OK PARA LANZAR</string>
+    <string name="level_clear">NIVEL</string>
+    <string name="game_over">FIN DEL JUEGO</string>
+    <string name="you_win">HAS GANADO</string>
+    <string name="new_high_score">NUEVO RÉCORD</string>
+    <string name="hud_score">Puntos</string>
+    <string name="hud_lives">Vidas</string>
+    <string name="hud_level">Nivel</string>
+    <string name="auto_badge">AUTO</string>
+    <string name="slide_to_steer">DESLIZA AQUÍ PARA MOVER</string>
+    <string name="settings">Ajustes</string>
+    <string name="settings_sound">Sonido</string>
+    <string name="settings_sound_hint">Efectos y la pista ambiental</string>
+    <string name="settings_haptics">Vibración</string>
+    <string name="settings_haptics_hint">Un toque por ladrillo, un clic por bola perdida</string>
+    <string name="settings_auto_play">Juego automático</string>
+    <string name="settings_auto_play_hint">El piloto automático juega la partida por ti</string>
+    <string name="settings_done">Listo</string>
+    <string name="settings_glasses">Gafas</string>
+    <string name="settings_glasses_none">No hay gafas de IA emparejadas</string>
+    <string name="settings_glasses_connected">Emparejadas: juega en las gafas, la barra táctil mueve</string>
+    <string name="settings_glasses_active">Jugando en las gafas; el teléfono espera</string>
+    <string name="settings_glasses_play">Jugar</string>
+    <string name="settings_glasses_phone">Teléfono</string>
+    <string name="settings_glasses_unavailable">Ninguna</string>
+    <string name="on_glasses">EN LAS GAFAS</string>
+    <string name="on_glasses_hint">Ajustes devuelve el juego aquí</string>
+    <string name="touch_to_play">Toca la barra para jugar</string>
+    <string name="touch_to_launch">TOCA PARA LANZAR</string>
+    <string name="paused">PAUSA</string>
+    <string name="tap_to_resume">TOCA PARA SEGUIR</string>
+    <string name="press_to_resume">OK PARA SEGUIR</string>
+    <string name="touch_to_resume">TOCA PARA SEGUIR</string>
+    <string name="shortcut_autoplay_short">Juego automático</string>
+    <string name="shortcut_autoplay_long">Mira jugar al piloto automático</string>
+    <string name="a11y_field_state">Nivel %1$d, %2$s, %3$s</string>
+    <string name="a11y_level_start">Empieza el nivel %1$d</string>
+    <string name="a11y_level_clear">Nivel %1$d superado</string>
+    <string name="a11y_ball_lost">Bola perdida, quedan %1$s</string>
+    <plurals name="a11y_bricks_left">
+        <item quantity="one">queda %d ladrillo</item>
+        <item quantity="many">quedan %d de ladrillos</item>
+        <item quantity="other">quedan %d ladrillos</item>
+    </plurals>
+    <plurals name="a11y_lives">
+        <item quantity="one">%d vida</item>
+        <item quantity="many">%d de vidas</item>
+        <item quantity="other">%d vidas</item>
+    </plurals>
+    <string name="a11y_game_over">Fin del juego, %1$d puntos</string>
+    <string name="a11y_win">Has ganado, %1$d puntos</string>
+    <string name="a11y_paused">Juego en pausa</string>
+</resources>
