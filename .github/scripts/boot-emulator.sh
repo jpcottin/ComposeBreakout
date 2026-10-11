@@ -90,6 +90,8 @@ echo "===== AVD config.ini ====="; cat "$CONFIG"
 # Cold boot, no snapshot, a large userdata partition so the APK can stage,
 # and adb held off until boot completes (-delay-adb): a device that goes
 # offline mid-boot used to fail a leg.
+"$SDK/emulator/emulator" -version 2>/dev/null | head -1
+"$SDK/emulator/emulator" -accel-check 2>&1 | head -5
 # shellcheck disable=SC2086
 nohup "$SDK/emulator/emulator" -port "$PORT" -avd "$AVD" \
     -no-snapshot -no-window -gpu "$GPU" -noaudio -no-boot-anim -camera-back none \
@@ -103,7 +105,9 @@ deadline=$(( $(date +%s) + ${BOOT_TIMEOUT:-900} ))
 until [ "$(timeout 10 adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
     if [ "$(date +%s)" -ge "$deadline" ]; then
         echo "ERROR: the emulator did not finish booting within ${BOOT_TIMEOUT:-900} s"
-        tail -n 200 "$EMULATOR_LOG"
+        echo "----- emulator output, head -----"; head -n 150 "$EMULATOR_LOG"
+        echo "----- emulator output, tail -----"; tail -n 150 "$EMULATOR_LOG"
+        echo "----- adb -----"; adb devices -l 2>&1; timeout 10 adb -s "$SERIAL" shell getprop 2>&1 | grep -E 'sys.boot|ro.build.version.sdk|init.svc.(bootanim|zygote|adbd)|dev.bootcomplete' | head
         exit 1
     fi
     kill -0 "$!" 2>/dev/null || { echo "ERROR: the emulator exited"; tail -n 200 "$EMULATOR_LOG"; exit 1; }
