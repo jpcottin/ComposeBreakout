@@ -47,6 +47,10 @@ jobs:
       - name: Validate Compose preview screenshots
         run: ./gradlew :app:validateDebugScreenshotTest
 
+      - name: Test summary
+        if: always()
+        run: bash .github/scripts/test-summary.sh "JVM tests" engine/build/test-results app/build/test-results
+
       - name: Upload screenshot test report on failure
         if: failure()
         uses: actions/upload-artifact@v7
@@ -82,10 +86,20 @@ jobs:
           cache: gradle
 
       - name: Play seeded campaigns on a portrait phone
-        run: ./gradlew :engine:run --args="--runs 100 --levels --campaigns --min-campaign-win 95" -q
+        run: ./gradlew :engine:run --args="--runs 100 --levels --campaigns --min-campaign-win 95" -q 2>&1 | tee bench-portrait.txt; test "${PIPESTATUS[0]}" -eq 0
 
       - name: Play seeded campaigns on a landscape screen
-        run: ./gradlew :engine:run --args="--width 2400 --height 1080 --runs 50 --levels --campaigns --min-campaign-win 95" -q
+        run: ./gradlew :engine:run --args="--width 2400 --height 1080 --runs 50 --levels --campaigns --min-campaign-win 95" -q 2>&1 | tee bench-landscape.txt; test "${PIPESTATUS[0]}" -eq 0
+
+      # The two tables on the run's summary page, where they can be compared
+      # with the numbers in an Auto Play commit message.
+      - name: Bench summary
+        if: always()
+        run: |
+          for f in bench-portrait.txt bench-landscape.txt; do
+            [ -f "$f" ] || continue
+            { echo "### Auto Play bench: ${f#bench-}"; echo; echo '```'; cat "$f"; echo '```'; echo; } >> "$GITHUB_STEP_SUMMARY"
+          done
 
   # ── Instrumented tests on emulators ──────────────────────────────────────────
   # Phones, a foldable and a TV on stock images gate the merge, on the
@@ -300,6 +314,10 @@ jobs:
       - name: Dump guest logcat on failure
         if: failure()
         run: tail -n 1000 "${{ github.workspace }}/emulator_logcat.txt" 2>/dev/null || echo "no logcat captured"
+
+      - name: Test summary
+        if: always()
+        run: bash .github/scripts/test-summary.sh "Instrumented tests (API ${{ matrix.api-level }}, ${{ matrix.profile }}, ${{ matrix.gpu }})" app/build/outputs/androidTest-results/connected
 
       - name: Upload instrumented test report on failure
         if: failure()
