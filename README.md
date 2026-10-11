@@ -243,6 +243,10 @@ com.jpcottin.composebreakout/.MainActivity --ez autoplay true`, which turns
 Auto Play on and starts a round: a way to watch the game play itself from
 the command line.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 [Apache License 2.0](LICENSE).
