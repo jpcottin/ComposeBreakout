@@ -41,6 +41,12 @@ glasses pictures are the screenshot tests' own renders.
   the ball a little faster each level and faster still as the wall thins.
   Tough bricks (two hits) arrive at level 3, steel (never breaks, does not
   count) at level 5, armour (three hits) at level 7.
+
+  <img src="docs/screenshots/levels.png" width="600" alt="The ten walls side by side, level 1 to level 10: more rows, holes, steel bricks with rivets, tougher bricks with an inner core">
+
+  The picture is the `LevelsGallery` composable, a preview and a screenshot
+  test drawn by the same code that draws the game: a change to a level's
+  layout is seen, not guessed.
 - **Controls:** the strip below the paddle steers — the paddle slides toward
   the finger — and any tap launches the ball resting on the paddle. The
   bounce angle follows where the ball meets the paddle: centre sends it up,

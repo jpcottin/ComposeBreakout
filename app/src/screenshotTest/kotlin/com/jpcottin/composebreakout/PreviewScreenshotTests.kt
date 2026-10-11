@@ -12,6 +12,7 @@ import com.jpcottin.composebreakout.engine.HighScore
 import com.jpcottin.composebreakout.theme.BreakoutTheme
 import com.jpcottin.composebreakout.ui.GameScreen
 import com.jpcottin.composebreakout.ui.GlassesState
+import com.jpcottin.composebreakout.ui.LevelsGallery
 import com.jpcottin.composebreakout.ui.Settings
 import com.jpcottin.composebreakout.ui.SettingsContent
 
@@ -173,6 +174,15 @@ fun GameOverScreenshot() = Screen(gameOverGame(PHONE))
 @Preview(name = "Win tablet", device = Devices.TABLET, showBackground = true)
 @Composable
 fun WinTabletScreenshot() = Screen(winGame(TABLET))
+
+// ── The ten walls ────────────────────────────────────────────────────────────
+
+@PreviewTest
+@Preview(name = "Levels", widthDp = 720, heightDp = 900, showBackground = true)
+@Composable
+fun LevelsGalleryScreenshot() {
+    BreakoutTheme { LevelsGallery() }
+}
 
 // ── AI Glasses ───────────────────────────────────────────────────────────────
 
