@@ -42,7 +42,13 @@ class AutoplayLaunchTest {
 
     @After
     fun closeTheActivity() {
-        if (::scenario.isInitialized) scenario.close()
+        if (!::scenario.isInitialized) return
+        // The unattended launch turns the stored Auto Play switch on, and
+        // DataStore keeps that in memory for the life of the process: left
+        // on, the autopilot would resume the rounds the other tests pause.
+        scenario.onActivity { ViewModelProvider(it)[GameViewModel::class.java].setAutoPlay(false) }
+        Thread.sleep(300)                                       // let the write land
+        scenario.close()
     }
 
     private fun frames(count: Int) = composeTestRule.mainClock.advanceTimeBy(16L * count)
