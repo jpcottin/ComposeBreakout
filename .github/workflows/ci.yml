@@ -160,6 +160,10 @@ jobs:
             gpu: lavapipe
             ram-size: 2048M
             memory: 2048
+          # The TV image restarts adbd right after the boot completes, under
+          # the emulator-runner action's own post-boot key press: the press
+          # fails and takes the leg with it about one run in twenty. This
+          # leg boots its emulator itself and lets the device settle first.
           - name: TV API 36
             api-level: '36'
             target: android-tv
@@ -167,6 +171,7 @@ jobs:
             gpu: lavapipe
             ram-size: 2048M
             memory: 2048
+            self-boot: true
           # The XR image insists on a hardware GPU (its XR mode UI and guest
           # ANGLE need one) and refuses to boot without: with those two
           # features off it boots on lavapipe, the software Vulkan device.
@@ -293,6 +298,7 @@ jobs:
       # stage, a generous boot timeout, and adb held off until boot completes
       # (-delay-adb): a device that goes offline mid-boot used to fail a leg.
       - name: Run instrumented tests on the emulator
+        if: ${{ !matrix.self-boot }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -317,9 +323,34 @@ jobs:
             echo "===== AVD config.ini ====="; cat "$HOME/.android/avd/test.avd/config.ini" 2>/dev/null || echo "(config.ini not found)"
             LOGCAT_FILE="${{ github.workspace }}/emulator_logcat.txt" bash .github/scripts/run-instrumented.sh
 
+      - name: Boot the emulator
+        if: ${{ matrix.self-boot }}
+        env:
+          API_LEVEL: ${{ matrix.api-level }}
+          TARGET: ${{ matrix.target }}
+          PROFILE: ${{ matrix.profile }}
+          GPU: ${{ matrix.gpu }}
+          MEMORY: ${{ matrix.memory }}
+          RAM_SIZE: ${{ matrix.ram-size }}
+          CORES: ${{ matrix.cores }}
+          DISK_SIZE: 8192M
+          EXTRA_OPTIONS: ${{ matrix.extra-options }}
+          EMULATOR_LOG: ${{ github.workspace }}/emulator.log
+        run: bash .github/scripts/boot-emulator.sh
+
+      - name: Run instrumented tests on the booted emulator
+        if: ${{ matrix.self-boot }}
+        run: LOGCAT_FILE="${{ github.workspace }}/emulator_logcat.txt" bash .github/scripts/run-instrumented.sh
+
+      - name: Shut the emulator down
+        if: ${{ always() && matrix.self-boot }}
+        run: adb -s "$ANDROID_SERIAL" emu kill || true
+
       - name: Dump guest logcat on failure
         if: failure()
-        run: tail -n 1000 "${{ github.workspace }}/emulator_logcat.txt" 2>/dev/null || echo "no logcat captured"
+        run: |
+          tail -n 1000 "${{ github.workspace }}/emulator_logcat.txt" 2>/dev/null || echo "no logcat captured"
+          if [ -f "${{ github.workspace }}/emulator.log" ]; then echo "===== emulator output ====="; tail -n 300 "${{ github.workspace }}/emulator.log"; fi
 
       - name: Test summary
         if: always()
