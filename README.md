@@ -185,13 +185,16 @@ balls it loses. Every Auto Play change is measured here before it ships:
 
 ```bash
 ./gradlew :engine:run --args="--runs 100 --levels --campaigns"        # portrait phone
-./gradlew :engine:run --args="--width 2400 --height 1080 --runs 50 --campaigns"
+./gradlew :engine:run --args="--width 2400 --height 1080 --runs 50 --campaigns"   # landscape
+./gradlew :engine:run --args="--width 2152 --height 2076 --runs 50 --campaigns"   # a foldable's inner screen
 ./gradlew :engine:run --args="--runs 1 --levels --trace"              # the scene at every lost ball
 ./gradlew :engine:run --args="--levels --level 8 --seed 17 --trace"   # replay one run that timed out
 ```
 
-CI runs it with `--min-campaign-win 95` on a portrait phone and a landscape
-screen: fewer than 95% of campaigns won fails the build.
+CI runs it with `--min-campaign-win 95` on a portrait phone, a landscape
+screen and a foldable's inner screen: fewer than 95% of campaigns won fails
+the build. The current autopilot wins 100% of portrait campaigns and 98% on
+the two wide screens, where one run in fifty stalls on the last bricks.
 
 ## Build & run
 
@@ -234,7 +237,7 @@ are read.
 | Job | What it does | Gates |
 |-----|-------------|-------|
 | **Build, lint, tests, screenshots** | Engine JUnit tests, Android lint, app unit tests, Compose preview screenshot validation, the debug and the minified release APK (`apks` artifact) | yes |
-| **Auto Play bench** | Seeded campaigns with the autopilot on a portrait phone (100) and a landscape screen (50); fails under a 95% campaign win rate | yes |
+| **Auto Play bench** | Seeded campaigns with the autopilot on a portrait phone (100), a landscape screen (50) and a foldable's inner screen (50); fails under a 95% campaign win rate | yes |
 | **Instrumented** | The instrumented tests (title, a round by tap and by D-pad, the settings sheet) on emulators: phones at API 33, 34, 35 and 36, a foldable and a TV at API 36 — on the lavapipe software Vulkan GPU or the emulator's auto choice, with `-delay-adb` so a device going offline mid-boot cannot fail a leg. The TV leg boots its emulator itself (`.github/scripts/boot-emulator.sh`), as that image restarts adbd right after boot and the runner action's first key press used to meet it | yes |
 | **Instrumented, experimental** | The same tests on an XR headset (API 34, `google-xr`), on a swiftshader comparison leg, and on the API 37.0, 37.1 and 37.2 page-size-16k images with the stable and canary emulators, lavapipe and auto GPU | no |
 | **Android CLI experiment** | The whole emulator flow through the Android CLI (`android sdk install`, `android emulator create/start/stop`) on the canary emulator, API 37.0 and 37.2 | no |
