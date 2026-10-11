@@ -149,6 +149,14 @@ fun PlayingTvScreenshot() = Screen(playingGame(TV))
 @Composable
 fun PlayingTabletopScreenshot() = Screen(playingGame(673f / 420f), tabletop = true)
 
+/** A round frozen mid-flight, waiting for the tap. */
+private fun pausedGame(aspect: Float): Game = playingGame(aspect).apply { pause() }
+
+@PreviewTest
+@Preview(name = "Paused", device = Devices.PHONE, showBackground = true)
+@Composable
+fun PausedScreenshot() = Screen(pausedGame(PHONE))
+
 @PreviewTest
 @Preview(name = "Level clear", device = Devices.PHONE, showBackground = true)
 @Composable

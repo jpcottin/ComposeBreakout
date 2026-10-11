@@ -930,3 +930,92 @@ class SteerTest {
         assertTrue(g.paddleX > 0f)
     }
 }
+
+// ── Pause ────────────────────────────────────────────────────────────────────
+
+class PauseTest {
+    @Test fun pauseFreezesABallInFlight() {
+        val g = playing()
+        g.debug.launch()
+        step(g, 0.2f)
+        g.pause()
+        assertTrue(g.paused)
+        val x = g.balls[0].x; val y = g.balls[0].y
+        step(g, 1f)
+        assertEquals(x, g.balls[0].x, 0f)
+        assertEquals(y, g.balls[0].y, 0f)
+    }
+
+    @Test fun tapResumes() {
+        val g = playing()
+        g.debug.launch()
+        step(g, 0.2f)
+        g.pause()
+        g.resume()                       // a human: still waiting for the tap
+        assertTrue(g.paused)
+        val y = g.balls[0].y
+        tap(g)
+        assertFalse(g.paused)
+        step(g, 0.2f)
+        assertNotEquals(y, g.balls[0].y)
+    }
+
+    @Test fun autopilotResumesByItself() {
+        val g = playing()
+        g.autoPlayActive = true
+        step(g, 1f)                      // launched by the autopilot
+        g.pause()
+        assertTrue(g.paused)
+        g.resume()
+        assertFalse(g.paused)
+    }
+
+    @Test fun aHeldKeyDoesNotResumeButAFingerDoes() {
+        val g = playing()
+        g.debug.launch()
+        step(g, 0.2f)
+        g.pause()
+        g.setSteer(1)
+        step(g, 0.5f)
+        assertTrue(g.paused)
+        assertEquals(0f, g.paddleX, 1e-6f)
+        g.setSteer(0)
+        g.onPointerDown(0, 0.3f, STRIP_Y)   // a finger on the strip is a tap
+        step(g, 0.2f)
+        assertFalse(g.paused)
+    }
+
+    @Test fun nothingToPauseOutsideAFlight() {
+        val title = newGame()
+        title.pause()
+        assertFalse(title.paused)
+        val held = playing()             // the serve waits anyway
+        held.pause()
+        assertFalse(held.paused)
+        val over = playing()
+        over.debug.setLives(1)
+        loseABall(over)
+        over.pause()
+        assertFalse(over.paused)
+    }
+
+    @Test fun pausedClockStillBreathes() {
+        val g = playing()
+        g.debug.launch()
+        g.pause()
+        val t = g.animTime
+        step(g, 0.5f)
+        assertTrue(g.animTime > t)
+    }
+
+    @Test fun aLostRoundClearsThePause() {
+        val g = playing()
+        g.debug.setLives(1)
+        g.debug.setBall(0.30f, 0.68f, 0f, 1f)
+        g.pause()
+        tap(g)                           // resume: the ball drops into the pit
+        step(g, 0.5f)
+        assertEquals(Game.State.GAME_OVER, g.state)
+        assertFalse(g.paused)
+    }
+}

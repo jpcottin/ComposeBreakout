@@ -3,7 +3,7 @@ package com.jpcottin.composebreakout
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,8 +14,14 @@ import androidx.lifecycle.ViewModelProvider
 import com.jpcottin.composebreakout.engine.Game
 import com.jpcottin.composebreakout.ui.GameViewModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -32,11 +38,22 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class GameScreenTest {
 
-    @get:Rule val composeTestRule = createAndroidComposeRule<MainActivity>()
+    @get:Rule val composeTestRule = createEmptyComposeRule()
+    private lateinit var scenario: ActivityScenario<MainActivity>
 
     @Before
-    fun pauseTheClock() {
+    fun launchFromACleanStore() {
+        // Settings and scores persist in DataStore: a switch left on by an
+        // earlier run (Auto Play steering the paddle) must not reach a test.
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        File(context.filesDir, "datastore").deleteRecursively()
         composeTestRule.mainClock.autoAdvance = false
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+    }
+
+    @After
+    fun closeTheActivity() {
+        scenario.close()
     }
 
     private fun frames(count: Int) = composeTestRule.mainClock.advanceTimeBy(16L * count)
@@ -77,9 +94,7 @@ class GameScreenTest {
     /** The engine behind the screen, from the activity's ViewModel store. */
     private fun game(): Game {
         lateinit var game: Game
-        composeTestRule.activityRule.scenario.onActivity {
-            game = ViewModelProvider(it)[GameViewModel::class.java].game
-        }
+        scenario.onActivity { game = ViewModelProvider(it)[GameViewModel::class.java].game }
         return game
     }
 
@@ -101,5 +116,29 @@ class GameScreenTest {
         val held = game.paddleX
         frames(20)
         assertEquals(held, game.paddleX, 1e-6f)                      // released: it stays
+    }
+
+    @Test
+    fun settingsPauseTheRoundAndATapResumesIt() {
+        frames(5)
+        val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
+        playfield.performClick()                                      // start the round
+        frames(40)                                                    // past the serve delay
+        playfield.performClick()                                      // launch
+        frames(10)
+        val game = game()
+        assertEquals(Game.State.PLAYING, game.state)
+        assertTrue(game.balls.isNotEmpty() && !game.ballHeld)
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
+        frames(2)
+        assertTrue(game.paused)                                       // the gear's click froze the round
+        frames(60)                                                    // the sheet's slide-in
+        Espresso.pressBack()                                          // close it
+        frames(60)                                                    // its slide-out: the window must be gone
+        assertTrue(game.paused)                                       // still waiting for the player
+        composeTestRule.onNodeWithContentDescription("Paused").assertIsDisplayed()
+        playfield.performClick()
+        frames(5)
+        assertFalse(game.paused)
     }
 }
