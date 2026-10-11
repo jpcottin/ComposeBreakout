@@ -237,7 +237,7 @@ fun GameScreen(
         when (game.state) {
             Game.State.TITLE -> TitleOverlay(game, frame, farViewing, hint, textScale)
             Game.State.PLAYING, Game.State.LEVEL_CLEAR -> {
-                Hud(game, frame, chromePadding, textScale)
+                Hud(game, frame, chromePadding, textScale, autoPlay = settings.autoPlay)
                 if (game.state == Game.State.LEVEL_CLEAR) LevelClearOverlay(game, frame, textScale)
                 else if (game.serveReady) LaunchHint(game, frame, hint, textScale)
             }
@@ -247,8 +247,8 @@ fun GameScreen(
         BonusFlash(game, frame, textScale)
         if (!glasses && game.glassesActive) OnGlassesBanner(game, frame, textScale)
 
-        // The gear, top-right, under the status bar; the AUTO badge beside it.
-        // Not on the glasses: Settings lives on the phone.
+        // The gear, top-right, under the status bar. Not on the glasses:
+        // Settings lives on the phone.
         if (!glasses) Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -256,15 +256,6 @@ fun GameScreen(
                 .padding(chromePadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            @Suppress("UNUSED_EXPRESSION") frame.longValue
-            if (settings.autoPlay && game.isMidGame) {
-                Text(
-                    text = stringResource(R.string.auto_badge),
-                    style = MaterialTheme.typography.labelLarge.scaled(textScale),
-                    color = AutoGreen.copy(alpha = 0.55f + 0.4f * sin(game.animTime * 3.5f)),
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-            }
             val gearInteraction = remember { MutableInteractionSource() }
             IconButton(
                 onClick = onOpenSettings,
@@ -437,9 +428,10 @@ private fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, hint
     }
 }
 
-/** Score, lives and level in the band above the ceiling. */
+/** Score, lives and level in the band above the ceiling; the AUTO badge
+ *  sits by the level number while the autopilot plays. */
 @Composable
-private fun Hud(game: Game, frame: LongState, chromePadding: androidx.compose.ui.unit.Dp, textScale: Float) {
+private fun Hud(game: Game, frame: LongState, chromePadding: androidx.compose.ui.unit.Dp, textScale: Float, autoPlay: Boolean) {
     observe(frame)
     Row(
         modifier = Modifier
@@ -470,6 +462,14 @@ private fun Hud(game: Game, frame: LongState, chromePadding: androidx.compose.ui
             }
         }
         Spacer(Modifier.weight(1f))
+        if (autoPlay) {
+            Text(
+                text = stringResource(R.string.auto_badge),
+                style = MaterialTheme.typography.labelLarge.scaled(textScale),
+                color = AutoGreen.copy(alpha = 0.55f + 0.4f * sin(game.animTime * 3.5f)),
+                modifier = Modifier.padding(end = 16.dp),
+            )
+        }
         val levelLabel = stringResource(R.string.hud_level)
         Text(
             text = "${game.level}",
