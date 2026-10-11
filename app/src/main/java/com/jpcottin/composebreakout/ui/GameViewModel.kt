@@ -1,6 +1,7 @@
 package com.jpcottin.composebreakout.ui
 
 import android.content.Context
+import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -110,7 +111,10 @@ class GameViewModel(
     override fun haptic() {
         val v = vibrator ?: return
         if (!v.hasVibrator()) return
-        v.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
+        val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+            VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+        else VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)
+        v.vibrate(effect)
     }
 
     override fun highScoresChanged(table: List<HighScore>) {
@@ -142,7 +146,9 @@ class GameViewModel(
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = context.applicationContext
-                val vibrator = (app.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+                val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    (app.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+                else @Suppress("DEPRECATION") (app.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)
                 GameViewModel(app.settingsStore, createSavedStateHandle(), vibrator)
             }
         }
