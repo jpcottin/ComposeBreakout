@@ -3,6 +3,7 @@ package com.jpcottin.composebreakout
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -74,6 +75,13 @@ class AutoplayLaunchTest {
         }
         assertEquals(Game.State.PLAYING, game.state)
         assertTrue(game.autoPlayActive)
+        // The badge follows the stored switch, which comes back through
+        // DataStore a moment after the engine has already turned.
+        for (attempt in 1..40) {
+            frames(5)
+            if (composeTestRule.onAllNodesWithText("AUTO").fetchSemanticsNodes().isNotEmpty()) break
+            Thread.sleep(50)
+        }
         composeTestRule.onNodeWithText("AUTO").assertIsDisplayed()
         // And it keeps going: the autopilot launches the held ball itself.
         for (attempt in 1..40) {
