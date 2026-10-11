@@ -1,14 +1,18 @@
 package com.jpcottin.composebreakout.ui
 
 import android.content.Context
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -21,7 +25,7 @@ import kotlinx.coroutines.launch
 
 private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-/** The player's choices and the high-score table, persisted in DataStore. */
+/** The player's choices, persisted in DataStore. */
 data class Settings(
     val soundEnabled: Boolean = true,
     val autoPlay: Boolean = false,
@@ -30,10 +34,16 @@ data class Settings(
 /**
  * Owns the [Game] for the activity's lifetime (it survives rotation and
  * fold/unfold), persists settings and high scores, and is the [GameHost]
- * the engine talks to. The frame loop lives in the composable that draws the
- * game; this class only exposes the engine and the persisted state.
+ * the engine talks to. A round in progress also survives process death:
+ * level, score and lives go into the saved state, and the next instance
+ * resumes them with a fresh wall. The frame loop lives in the composable
+ * that draws the game; this class only exposes the engine and the
+ * persisted state.
  */
-class GameViewModel(private val store: DataStore<Preferences>) : ViewModel(), GameHost {
+class GameViewModel(
+    private val store: DataStore<Preferences>,
+    savedState: SavedStateHandle,
+) : ViewModel(), GameHost {
 
     val game: Game = Game(host = this)
 
@@ -46,6 +56,20 @@ class GameViewModel(private val store: DataStore<Preferences>) : ViewModel(), Ga
     }
 
     init {
+        game.seed(System.nanoTime().toInt())
+        // The round saved by a previous instance of this process, if any.
+        savedState.get<Bundle>(KEY_SESSION)?.let { s ->
+            if (s.getBoolean(SESSION_MID_GAME))
+                game.restoreSession(s.getInt(SESSION_LEVEL), s.getLong(SESSION_SCORE), s.getInt(SESSION_LIVES))
+        }
+        savedState.setSavedStateProvider(KEY_SESSION) {
+            bundleOf(
+                SESSION_MID_GAME to game.isMidGame,
+                SESSION_LEVEL to game.level,
+                SESSION_SCORE to game.score,
+                SESSION_LIVES to game.lives,
+            )
+        }
         viewModelScope.launch {
             val prefs = store.data.first()
             game.soundEnabled = prefs[KEY_SOUND] ?: true
@@ -74,6 +98,11 @@ class GameViewModel(private val store: DataStore<Preferences>) : ViewModel(), Ga
         private val KEY_SOUND = booleanPreferencesKey("sound")
         private val KEY_AUTO_PLAY = booleanPreferencesKey("auto_play")
         private val KEY_HIGH_SCORES = stringPreferencesKey("high_scores")
+        private const val KEY_SESSION = "session"
+        private const val SESSION_MID_GAME = "midGame"
+        private const val SESSION_LEVEL = "level"
+        private const val SESSION_SCORE = "score"
+        private const val SESSION_LIVES = "lives"
 
         /** "score:level,score:level,..." — small enough that a string key is the simplest store. */
         internal fun encodeScores(table: List<HighScore>): String =
@@ -88,7 +117,7 @@ class GameViewModel(private val store: DataStore<Preferences>) : ViewModel(), Ga
             }
 
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer { GameViewModel(context.applicationContext.settingsStore) }
+            initializer { GameViewModel(context.applicationContext.settingsStore, createSavedStateHandle()) }
         }
     }
 }
