@@ -195,6 +195,17 @@ class Game(private val host: GameHost = GameHost.None) {
     private var aiMove = false
     private var aiTargetX = 0f
     private var aiLaunch = false
+    private val aiPlans = ArrayList<Plan>()
+    /** The autopilot is steering the paddle somewhere this frame. */
+    val aiHasTarget: Boolean get() = aiMove
+    /** Where the autopilot is taking the paddle. */
+    val aiTarget: Float get() = aiTargetX
+    /** The primary ball's predicted landing (tests, bench). */
+    var aiLanding: Flight = Flight()
+        private set
+    /** The hit offset chosen for the primary ball, -1..1 across the paddle. */
+    var aiPlanU: Float = 0f
+        private set
 
     // --- input ---
     private val pointers = ArrayList<Pointer>()
@@ -374,6 +385,7 @@ class Game(private val host: GameHost = GameHost.None) {
         ballsList.add(Ball(paddleX, World.PADDLE_Y - World.PADDLE_HH - World.BALL_R, 0f, -1f))
         ballHeld = true
         serveTimer = SERVE_DELAY
+        aiPlans.clear()
     }
 
     /** Up and to one side, 14-31 degrees off vertical. */
@@ -598,10 +610,6 @@ class Game(private val host: GameHost = GameHost.None) {
         demoPaddleX = if (abs(dx) <= step) demoBallX else demoPaddleX + (if (dx > 0f) step else -step)
     }
 
-    /** The autopilot. Arrives with the next step of the project; until then
-     *  Auto Play leaves the paddle where it is. */
-    @Suppress("UNUSED_PARAMETER")
-    private fun updateAutoPlay(dt: Float) = Unit
 
     private fun updatePaddle(dt: Float) {
         if (moveHeld) {
@@ -727,6 +735,308 @@ class Game(private val host: GameHost = GameHost.None) {
         stateTimer = 0f
     }
 
+    // ── Auto Play ─────────────────────────────────────────────────────────────
+    //
+    // The autopilot plays the same way a good player does: it works out where
+    // the ball will come down, gets the paddle there, and picks *where on the
+    // paddle* to take it so the rebound does the most damage — the hit offset
+    // sets the angle, so the choice of offset is the aim. Every candidate
+    // rebound is simulated against the wall with the same collision rules as
+    // the real update; the one that hits the most bricks per second of flight
+    // and still comes down somewhere the paddle can reach wins. Predictions
+    // are cached per ball and only redone when the ball changes direction (a
+    // bounce), so a trip costs a handful of simulations, not one per frame.
+    //
+    // Bonus capsules are collected when the paddle can get there and still be
+    // back under the ball in time; a ball resting on the paddle is launched
+    // as soon as the serve delay is over.
+
+    /** A ball's flight, simulated with the same rules as the real update
+     *  until it comes down to the paddle line. */
+    data class Flight(
+        /** Reached the paddle line within the horizon. */
+        val lands: Boolean = false,
+        /** Where (centre x) and */
+        val x: Float = 0f,
+        /** when (seconds from now). */
+        val t: Float = 0f,
+        /** Brick hits on the way (a break counts twice). */
+        val hits: Int = 0,
+        /** Highest point reached (smaller is higher). */
+        val minY: Float = 1f,
+    )
+
+    /** What the autopilot knows about one ball in play: its predicted landing
+     *  and the rebound it has chosen for it. Valid while the ball keeps its
+     *  direction; any bounce invalidates it. */
+    private class Plan {
+        var valid = false
+        var dx = 0f
+        var dy = 0f
+        var land = Flight()
+        var u = 0f          // chosen hit offset (-1..1 across the paddle)
+        var age = 0f        // seconds since the plan was made
+    }
+
+    /** The rebound direction for a hit at offset u — the same rule as
+     *  [bounceOffPaddle], including the never-vertical minimum. */
+    private fun reboundAngle(uIn: Float): Float {
+        val u = uIn.coerceIn(-1f, 1f)
+        var a = u * MAX_BOUNCE_ANGLE
+        if (abs(a) < MIN_BOUNCE_ANGLE) a = if (u < 0f) -MIN_BOUNCE_ANGLE else MIN_BOUNCE_ANGLE
+        return a
+    }
+
+    /** Fly a ball from (x, y) along (dx, dy) until it comes down to the
+     *  paddle line. [hp] is a scratch copy of the wall (hit points per brick,
+     *  0 dead, -1 steel) that the flight damages as it goes, so a second
+     *  flight from the landing point sees the bricks the first one broke. */
+    private fun simulateFlight(x0: Float, y0: Float, dx0: Float, dy0: Float, speed: Float, hp: IntArray, tMax: Float): Flight {
+        var x = x0; var y = y0; var dx = dx0; var dy = dy0
+        var hits = 0
+        var minY = 1f
+        val lim = fieldHalfWidth - World.BALL_R
+        val top = World.TOP_WALL_Y + World.BALL_R
+        val paddleTop = World.PADDLE_Y - World.PADDLE_HH
+        // Below this line there is nothing to hit: skip the brick loop.
+        val wallBottom = if (rows > 0) World.WALL_TOP_Y + (rows - 1) * (2f * World.BRICK_HH + World.BRICK_GAP_Y) + World.BRICK_HH
+                         else World.TOP_WALL_Y
+        val sdt = BALL_STEP / speed
+        var t = 0f
+        var step = 0
+        while (step < AI_MAX_STEPS && t < tMax) {
+            step++
+            x += dx * BALL_STEP
+            y += dy * BALL_STEP
+            t += sdt
+            if (x > lim && dx > 0f) { x = lim; dx = -dx }
+            else if (x < -lim && dx < 0f) { x = -lim; dx = -dx }
+            if (y < top && dy < 0f) {
+                y = top; dy = -dy
+                if (abs(dy) < MIN_DY) { val sdx = if (dx < 0f) -1f else 1f; dy = MIN_DY; dx = sdx * sqrt(1f - MIN_DY * MIN_DY) }
+            }
+            if (y < minY) minY = y
+            if (y - World.BALL_R <= wallBottom) {
+                for (i in bricksList.indices) {
+                    if (hp[i] == 0) continue
+                    val br = bricksList[i]
+                    val bx = x - brickX(br); val by = y - brickY(br)
+                    val px = World.BRICK_HW + World.BALL_R - abs(bx)
+                    val py = World.BRICK_HH + World.BALL_R - abs(by)
+                    if (px <= 0f || py <= 0f) continue
+                    if (px < py) {
+                        dx = if (bx > 0f) abs(dx) else -abs(dx)
+                        x += if (bx > 0f) px else -px
+                    } else {
+                        dy = if (by > 0f) abs(dy) else -abs(dy)
+                        y += if (by > 0f) py else -py
+                    }
+                    if (abs(dy) < MIN_DY) {
+                        val sdy = if (dy < 0f) -1f else 1f
+                        val sdx = if (dx < 0f) -1f else 1f
+                        dy = sdy * MIN_DY; dx = sdx * sqrt(1f - MIN_DY * MIN_DY)
+                    }
+                    if (hp[i] > 0) {
+                        hp[i]--
+                        hits += if (hp[i] == 0) 2 else 1
+                    }
+                    break
+                }
+            }
+            if (dy > 0f && y + World.BALL_R >= paddleTop) return Flight(true, x, t, hits, minY)
+        }
+        return Flight(false, 0f, 0f, hits, minY)   // never came down within the horizon
+    }
+
+    /** Predict where ball [b] lands and choose the rebound to give it there. */
+    private fun makePlan(plan: Plan, b: Ball, ballIndex: Int) {
+        plan.valid = true
+        plan.dx = b.dx; plan.dy = b.dy
+        plan.age = 0f
+        plan.u = 0f
+        val speed = ballSpeed
+        val hp = IntArray(bricksList.size) { i ->
+            val br = bricksList[i]
+            if (!br.alive) 0 else if (br.type == BrickType.STEEL) -1 else br.hp
+        }
+        plan.land = simulateFlight(b.x, b.y, b.dx, b.dy, speed, hp, AI_HORIZON)
+        if (!plan.land.lands) return
+        // The wall as it will be when the ball arrives (this flight's damage).
+        val wallAtLanding = hp.copyOf()
+
+        val hw = paddleHalfWidth
+        val lim = fieldHalfWidth - hw
+        val speedP = World.paddleSpeed(aspect)
+        val ballY = World.PADDLE_Y - World.PADDLE_HH - World.BALL_R
+        var bestScore = -1e9f
+        for (u in AI_OFFSETS) {
+            var px = (plan.land.x - u * hw).coerceIn(-lim, lim)   // where the paddle must be
+            var uReal = (plan.land.x - px) / hw                   // the offset the clamp allows
+            if (abs(uReal) < AI_MIN_OFFSET) {                      // pushed into the dead zone by the clamp
+                uReal = if (uReal < 0f) -AI_MIN_OFFSET else AI_MIN_OFFSET
+                px = plan.land.x - uReal * hw
+                if (px > lim || px < -lim) continue
+            }
+            // Reachable in time? The paddle slides at the paddle speed.
+            if (abs(px - paddleX) - speedP * plan.land.t > 0f) continue
+            val a = reboundAngle(uReal)
+            val rdx = sin(a); val rdy = -cos(a)
+            val hpNext = wallAtLanding.copyOf()
+            val next = simulateFlight(plan.land.x, ballY, rdx, rdy, speed, hpNext, AI_HORIZON)
+            // Damage per second of flight, the wall's height reached as a tie
+            // breaker (a trip that climbs high is a trip that will hit
+            // something next time), and a small preference for the middle of
+            // the paddle.
+            var score: Float
+            if (next.lands) {
+                score = next.hits / (next.t + 0.4f) + (World.PADDLE_Y - next.minY) * 0.15f
+                // The next landing must be reachable from this paddle position;
+                // otherwise the hit is a slow way to lose the ball.
+                val gap = abs(next.x - px) - hw * AI_CATCH_SLACK - speedP * next.t
+                if (gap > 0f) score -= 10f + gap
+                // Other balls in play land too: a hit that strands them is bad.
+                for (j in aiPlans.indices) {
+                    if (j == ballIndex || !aiPlans[j].valid || !aiPlans[j].land.lands) continue
+                    val o = aiPlans[j].land
+                    val after = o.t - aiPlans[j].age - plan.land.t
+                    if (after <= 0f) continue
+                    val g = abs(o.x - px) - hw * AI_CATCH_SLACK - speedP * after
+                    if (g > 0f) score -= 3f
+                }
+            } else {
+                // Still up there after the horizon: busy breaking bricks, or
+                // stuck. Reward the damage, mildly.
+                score = next.hits / AI_HORIZON + (World.PADDLE_Y - next.minY) * 0.15f
+            }
+            if (next.hits == 0) {
+                // A trip that hits nothing. When the last bricks are off in a
+                // corner, no single rebound reaches them: look one trip
+                // further — from where this rebound comes down, which second
+                // rebound hits something, and how soon. Taking a dead trip
+                // without looking ahead sent the ball up the same empty lane
+                // for minutes.
+                var best2 = 0f
+                if (next.lands) {
+                    val px2 = next.x   // the paddle will be under it; offsets from there
+                    for (u2 in AI_OFFSETS) {
+                        val p2 = next.x - u2 * hw
+                        if (p2 > lim || p2 < -lim) continue
+                        if (abs(p2 - px2) > speedP * next.t) continue   // not reachable in time
+                        val a2 = reboundAngle(u2)
+                        val two = simulateFlight(next.x, ballY, sin(a2), -cos(a2), speed, hpNext.copyOf(), AI_HORIZON)
+                        if (two.hits == 0) continue
+                        val s2 = two.hits / (next.t + (if (two.lands) two.t else AI_HORIZON) + 0.4f)
+                        if (s2 > best2) best2 = s2
+                    }
+                }
+                score += 0.8f * best2 + 0.10f * abs(next.x - plan.land.x) + 0.05f * abs(uReal)
+            } else {
+                score -= 0.02f * abs(uReal)
+            }
+            if (score > bestScore) { bestScore = score; plan.u = uReal }
+        }
+        if (bestScore <= -1e8f) {
+            // Nothing reachable in time: head for the landing anyway, the
+            // nearest tip first.
+            plan.u = if (plan.land.x > paddleX) -AI_CATCH_SLACK else AI_CATCH_SLACK
+        }
+    }
+
+    private fun updateAutoPlay(dt: Float) {
+        // A ball on the paddle: launch it the moment the serve delay is over.
+        if (ballHeld) {
+            aiLaunch = true
+            aiPlans.clear()
+        }
+
+        // Keep one plan per ball; redo a plan when its ball changed direction.
+        while (aiPlans.size < ballsList.size) aiPlans.add(Plan())
+        while (aiPlans.size > ballsList.size) aiPlans.removeAt(aiPlans.size - 1)
+        for (i in ballsList.indices) {
+            val b = ballsList[i]
+            val p = aiPlans[i]
+            if (!b.alive || ballHeld) { p.valid = false; continue }
+            if (p.valid && p.dx == b.dx && p.dy == b.dy) { p.age += dt; continue }
+            makePlan(p, b, i)
+        }
+
+        // The primary ball: the one that comes down first and can still be
+        // caught. A ball that is already out of reach is written off.
+        val hw = paddleHalfWidth
+        val lim = fieldHalfWidth - hw
+        val speedP = World.paddleSpeed(aspect)
+        var primary = -1
+        var primaryT = 1e9f
+        for (i in aiPlans.indices) {
+            val p = aiPlans[i]
+            if (!p.valid || !p.land.lands) continue
+            val t = (p.land.t - p.age).coerceAtLeast(0f)
+            val px = (p.land.x - p.u * hw).coerceIn(-lim, lim)
+            val catchable = abs(px - paddleX) - speedP * t <= hw * (1f - AI_CATCH_SLACK) + 0.02f
+            if (!catchable) continue
+            if (t < primaryT) { primaryT = t; primary = i }
+        }
+        if (primary < 0) {
+            // Nothing catchable: chase the soonest landing regardless.
+            for (i in aiPlans.indices) {
+                val p = aiPlans[i]
+                if (!p.valid || !p.land.lands) continue
+                val t = p.land.t - p.age
+                if (t < primaryT) { primaryT = t; primary = i }
+            }
+        }
+
+        var desiredX = paddleX
+        var haveTarget = false
+        if (primary >= 0) {
+            val p = aiPlans[primary]
+            aiLanding = p.land.copy(t = primaryT)
+            aiPlanU = p.u
+            desiredX = p.land.x - p.u * hw
+            haveTarget = true
+        } else {
+            aiLanding = Flight()
+            aiPlanU = 0f
+        }
+
+        // Bonus capsules: worth a detour when the paddle can be under the
+        // capsule as it crosses the paddle line and still be back under the
+        // ball in time. The most valuable reachable one wins; a bonus already
+        // running with plenty of time left is not worth the walk.
+        var collect: PowerUp? = null
+        var collectValue = -1
+        for (pu in powerUpsList) {
+            if (!pu.alive) continue
+            var tp = (World.PADDLE_Y - pu.y) / POWER_UP_SPEED   // centre reaches the paddle line
+            if (tp < -0.25f) continue                            // already past
+            if (tp < 0f) tp = 0f
+            val value = when (pu.type) {
+                PowerUpType.LIFE -> 4
+                PowerUpType.MULTI -> 3
+                PowerUpType.SLOW -> if (slowTimer > 3f) 0 else 2
+                PowerUpType.WIDE -> if (wideTimer > 3f) 0 else 1
+            }
+            if (value == 0) continue
+            val px = pu.x.coerceIn(-lim, lim)
+            // Get there before the capsule leaves the paddle band...
+            val leave = tp + (World.PADDLE_HH + POWER_UP_R) / POWER_UP_SPEED
+            if (abs(px - paddleX) > speedP * leave) continue
+            // ...and back under the ball in time for its landing.
+            if (haveTarget) {
+                val back = primaryT - tp
+                if (back < 0f) continue                          // the ball comes first
+                if (abs(desiredX - px) - hw * (1f - AI_CATCH_SLACK) > speedP * back) continue
+            }
+            if (value > collectValue) { collectValue = value; collect = pu }
+        }
+
+        when {
+            collect != null -> { aiTargetX = collect.x; aiMove = true }
+            haveTarget -> { aiTargetX = desiredX; aiMove = true }
+            ballHeld -> { aiTargetX = paddleX; aiMove = true }   // keeps the launch path armed
+        }
+    }
+
     // ── High scores ───────────────────────────────────────────────────────────
 
     /** Insert a score at its rank unless the identical entry is already
@@ -838,6 +1148,18 @@ class Game(private val host: GameHost = GameHost.None) {
         private const val MIN_DY = 0.25f        // after a wall/brick bounce: no near-horizontal shuttling
         private const val BALL_STEP = 0.008f    // collision substep length (half the ball radius)
         private const val PADDLE_DEADBAND = 0.006f
+
+        // Auto Play
+        private const val AI_HORIZON = 8f           // seconds of flight worth simulating
+        private const val AI_MAX_STEPS = 4000       // hard cap on a simulation
+        private const val AI_CATCH_SLACK = 0.85f    // fraction of the half-width that still catches
+        /** Candidate hit offsets across the paddle: -1 is the left tip, +1 the
+         *  right. Nothing inside the dead zone (|u| < [AI_MIN_OFFSET]): every
+         *  hit there leaves at the 8-degree minimum, left or right by the sign
+         *  of a hair's width of paddle placement, so a plan there is a coin
+         *  toss the simulation cannot call. */
+        private val AI_OFFSETS = floatArrayOf(-0.85f, -0.60f, -0.35f, -0.16f, 0.16f, 0.35f, 0.60f, 0.85f)
+        private const val AI_MIN_OFFSET = 0.16f
 
         /** Brick colours by row as (r, g, b): the debris takes the row's colour. */
         val ROW_COLORS: List<FloatArray> = listOf(
