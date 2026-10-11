@@ -14,8 +14,9 @@ bench run on any JVM in seconds. Sibling of
 with a hand-written Vulkan renderer.
 
 > **Status:** the game is playable — ten levels, the four bonuses, the
-> high-score table, the end screens — and Auto Play wins it. The adaptive
-> inputs (D-pad, tabletop), the sounds and the glasses mode land in the next
+> high-score table, the end screens — Auto Play wins it, and it plays on a
+> phone, a foldable (open, closed or half-opened), a tablet, an XR panel
+> and a TV with a D-pad. The sounds and the glasses mode land in the next
 > pull requests.
 
 ## The game
@@ -27,7 +28,11 @@ with a hand-written Vulkan renderer.
 - **Controls:** the strip below the paddle steers — the paddle slides toward
   the finger — and any tap launches the ball resting on the paddle. The
   bounce angle follows where the ball meets the paddle: centre sends it up,
-  the tips 65 degrees out. That is the aim.
+  the tips 65 degrees out. That is the aim. With a D-pad, a remote or a
+  keyboard, left and right steer at the same speed and OK / Enter / Space
+  launches; Up reaches the gear, Down comes back. On a half-opened foldable
+  the game sits above the hinge and the whole lower half is the steering
+  surface.
 - **Bonuses** drop from broken bricks: a wide paddle (10 s), a slow ball
   (8 s), multi-ball (every ball splits in three, up to six) and an extra
   life (up to nine). Five lives to start.
@@ -64,9 +69,15 @@ with a hand-written Vulkan renderer.
   `LaunchedEffect`: one engine step per vsync with the real elapsed time.
 - **Device traits, not form-factor labels** — Compose's `mediaQuery { }`
   decides the inputs and margins from what the device can do: viewing
-  distance drives overscan margins, pointer precision drives D-pad steering,
-  window posture drives the tabletop layout on foldables. Previews fall back
-  to `uiMode` when the Application class is not around.
+  distance drives overscan margins and larger HUD text, pointer precision
+  decides between "tap" and "press OK" hints, window posture drives the
+  tabletop layout on foldables. Previews fall back to `uiMode` when the
+  Application class is not around.
+- **Keys and focus** — the playfield is a focusable node that turns D-pad
+  and keyboard events into engine steering (held key = paddle sliding at
+  its usual speed, like a finger on the strip); it holds focus while the
+  game runs and takes it back when the settings sheet closes, so a TV never
+  loses its cursor.
 - **Styles API** — the focus ring on the gear and the settings rows is a
   Compose `Style` driven by the component's `InteractionSource`, so a TV
   remote or a keyboard always shows where focus is.
@@ -140,7 +151,7 @@ merges.
 |-----|-------------|-----------|
 | **Build, lint, tests, screenshots** | Engine JUnit tests, Android lint, app unit tests, Compose preview screenshot validation, debug APK | `debug-apk`, `screenshot-test-report` on failure |
 | **Auto Play bench** | Seeded campaigns with the autopilot on a portrait phone (100) and a landscape screen (50); fails under a 95% campaign win rate | — |
-| **Instrumented** | Launches the activity on three emulators — a phone (API 34), a foldable (API 36, `7.6in Foldable`) and a TV (API 36, `android-tv`) — and checks the title and the settings sheet | test report on failure |
+| **Instrumented** | Launches the activity on three emulators — a phone (API 34), a foldable (API 36, `7.6in Foldable`) and a TV (API 36, `android-tv`) — starts a round by tap and by D-pad, steers with a key, checks the HUD and the settings sheet | test report on failure |
 
 ## License
 

@@ -1,11 +1,20 @@
 package com.jpcottin.composebreakout
 
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.lifecycle.ViewModelProvider
+import com.jpcottin.composebreakout.engine.Game
+import com.jpcottin.composebreakout.ui.GameViewModel
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Before
 import org.junit.Rule
@@ -61,5 +70,34 @@ class GameScreenTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Sound").assertIsDisplayed()
         composeTestRule.onNodeWithText("Auto Play").assertIsDisplayed()
+    }
+
+    /** The engine behind the screen, from the activity's ViewModel store. */
+    private fun game(): Game {
+        lateinit var game: Game
+        composeTestRule.activityRule.scenario.onActivity {
+            game = ViewModelProvider(it)[GameViewModel::class.java].game
+        }
+        return game
+    }
+
+    @Test
+    fun dPadStartsTheRoundAndSteers() {
+        frames(5)
+        val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
+        playfield.performSemanticsAction(SemanticsActions.RequestFocus)
+        frames(2)
+        playfield.performKeyInput { keyDown(Key.DirectionCenter); keyUp(Key.DirectionCenter) }   // start the round
+        frames(5)
+        val game = game()
+        assertEquals(Game.State.PLAYING, game.state)
+        playfield.performKeyInput { keyDown(Key.DirectionRight) }
+        frames(20)
+        playfield.performKeyInput { keyUp(Key.DirectionRight) }
+        frames(2)
+        assertTrue("paddle at ${game.paddleX}", game.paddleX > 0.05f)
+        val held = game.paddleX
+        frames(20)
+        assertEquals(held, game.paddleX, 1e-6f)                      // released: it stays
     }
 }

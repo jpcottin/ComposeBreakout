@@ -289,6 +289,7 @@ class Game(private val host: GameHost = GameHost.None) {
 
     fun onPointersCancel() {
         pointers.clear()
+        steer = 0
     }
 
     /** A tap without a position (a D-pad select, a glasses touchbar press). */
@@ -296,17 +297,29 @@ class Game(private val host: GameHost = GameHost.None) {
         tapPending = true
     }
 
+    /**
+     * Steer with a key or a D-pad: -1 left, +1 right, 0 released. The paddle
+     * slides at its usual speed for as long as the key is held, which also
+     * launches a held ball like a finger on the strip does.
+     */
+    fun setSteer(direction: Int) {
+        steer = direction.coerceIn(-1, 1)
+    }
+    private var steer = 0
+
     // In TOUCHBAR mode (AI glasses) the whole surface is the control bar; in
     // STRIP mode only the strip below the paddle counts.
     private fun inControlZone(p: Pointer): Boolean =
         controlMode == ControlMode.TOUCHBAR || p.y > World.STRIP_TOP_Y
 
-    /** A finger (or the autopilot) is steering the paddle right now. */
+    /** A finger, a key or the autopilot is steering the paddle right now. */
     val moveHeld: Boolean
-        get() = pointers.any { inControlZone(it) } || (autoPlayActive && aiMove)
+        get() = steer != 0 || pointers.any { inControlZone(it) } || (autoPlayActive && aiMove)
 
-    private fun controlTargetX(): Float =
-        pointers.firstOrNull { inControlZone(it) }?.x ?: aiTargetX
+    private fun controlTargetX(): Float {
+        if (steer != 0) return steer * (fieldHalfWidth - paddleHalfWidth)   // the lane's edge, that way
+        return pointers.firstOrNull { inControlZone(it) }?.x ?: aiTargetX
+    }
 
     // ── The wall ──────────────────────────────────────────────────────────────
 

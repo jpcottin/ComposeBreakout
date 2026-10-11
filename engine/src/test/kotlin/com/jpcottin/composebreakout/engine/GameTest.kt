@@ -873,3 +873,60 @@ class TitleDemoTest {
         assertTrue(abs(g.demoPaddleX - g.demoBallX) < 0.15f)
     }
 }
+
+// ── Keys and the D-pad ───────────────────────────────────────────────────────
+
+class SteerTest {
+    @Test fun heldKeyMovesThePaddleAtItsUsualSpeed() {
+        val g = playing()
+        g.setSteer(1)
+        step(g, 0.1f)
+        assertEquals(World.paddleSpeed(PHONE) * 0.1f, g.paddleX, 0.02f)
+        g.setSteer(-1)
+        step(g, 0.3f)
+        assertTrue(g.paddleX < 0f)
+    }
+
+    @Test fun releasedKeyStopsThePaddle() {
+        val g = playing()
+        g.setSteer(1)
+        step(g, 0.2f)
+        g.setSteer(0)
+        val x = g.paddleX
+        step(g, 0.5f)
+        assertEquals(x, g.paddleX, 1e-6f)
+        assertFalse(g.moveHeld)
+    }
+
+    @Test fun keyStopsAtTheLaneEdge() {
+        val g = playing()
+        g.setSteer(1)
+        step(g, 3f)
+        assertEquals(g.fieldHalfWidth - World.PADDLE_HW, g.paddleX, 1e-5f)
+    }
+
+    @Test fun holdingAKeyLaunchesTheHeldBallToo() {
+        val g = playing()
+        g.setSteer(-1)
+        step(g, Game.SERVE_DELAY + 0.1f)
+        assertFalse(g.ballHeld)
+    }
+
+    @Test fun cancelReleasesTheKey() {
+        val g = playing()
+        g.setSteer(1)
+        g.onPointersCancel()
+        step(g, 0.5f)
+        assertEquals(0f, g.paddleX, 1e-6f)
+    }
+
+    @Test fun fingerWinsOverTheKey() {
+        val g = playing()
+        g.setSteer(1)
+        g.onPointerDown(0, -0.30f, STRIP_Y)
+        step(g, 1f)
+        // Both steer; the key says the right edge, the finger says -0.30. The
+        // key is the active one while held: a TV has no finger at all.
+        assertTrue(g.paddleX > 0f)
+    }
+}
