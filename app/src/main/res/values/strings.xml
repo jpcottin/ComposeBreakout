@@ -30,6 +30,12 @@
     <string name="settings_glasses_play">Play</string>
     <string name="settings_glasses_phone">Phone</string>
     <string name="settings_glasses_unavailable">None</string>
+    <string name="settings_reset">Reset progress</string>
+    <string name="settings_reset_hint">Forget the high scores and the level record</string>
+    <string name="reset_confirm_title">Reset progress?</string>
+    <string name="reset_confirm_text">The high scores and the furthest level reached are cleared. There is no undo.</string>
+    <string name="reset_confirm_yes">Reset</string>
+    <string name="cancel">Cancel</string>
     <string name="on_glasses">ON GLASSES</string>
     <string name="on_glasses_hint">Settings brings the game back</string>
     <string name="touch_to_play">Touch the bar to play</string>

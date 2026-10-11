@@ -30,6 +30,12 @@
     <string name="settings_glasses_play">Jugar</string>
     <string name="settings_glasses_phone">Teléfono</string>
     <string name="settings_glasses_unavailable">Ninguna</string>
+    <string name="settings_reset">Restablecer el progreso</string>
+    <string name="settings_reset_hint">Olvida los récords y el nivel alcanzado</string>
+    <string name="reset_confirm_title">¿Restablecer el progreso?</string>
+    <string name="reset_confirm_text">Se borrarán los récords y el nivel más alto alcanzado. No se puede deshacer.</string>
+    <string name="reset_confirm_yes">Restablecer</string>
+    <string name="cancel">Cancelar</string>
     <string name="on_glasses">EN LAS GAFAS</string>
     <string name="on_glasses_hint">Ajustes devuelve el juego aquí</string>
     <string name="touch_to_play">Toca la barra para jugar</string>

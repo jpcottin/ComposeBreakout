@@ -218,7 +218,7 @@ fun GlassesTitleScreenshot() = Screen(titleGame(640f / 360f).apply { controlMode
 fun OnGlassesScreenshot() = Screen(handedOffGame(PHONE))
 
 @PreviewTest
-@Preview(name = "Settings glasses paired", widthDp = 400, heightDp = 440, showBackground = true)
+@Preview(name = "Settings glasses paired", widthDp = 400, heightDp = 520, showBackground = true)
 @Composable
 fun SettingsGlassesPairedScreenshot() {
     BreakoutTheme {
@@ -232,7 +232,7 @@ fun SettingsGlassesPairedScreenshot() {
 }
 
 @PreviewTest
-@Preview(name = "Settings glasses active", widthDp = 400, heightDp = 440, showBackground = true)
+@Preview(name = "Settings glasses active", widthDp = 400, heightDp = 520, showBackground = true)
 @Composable
 fun SettingsGlassesActiveScreenshot() {
     BreakoutTheme {
@@ -248,7 +248,7 @@ fun SettingsGlassesActiveScreenshot() {
 // ── Settings ─────────────────────────────────────────────────────────────────
 
 @PreviewTest
-@Preview(name = "Settings card", widthDp = 640, heightDp = 480, showBackground = true, backgroundColor = 0xFF080A17)
+@Preview(name = "Settings card", widthDp = 640, heightDp = 560, showBackground = true, backgroundColor = 0xFF080A17)
 @Composable
 fun SettingsCardScreenshot() {
     BreakoutTheme {
@@ -263,7 +263,7 @@ fun SettingsCardScreenshot() {
 }
 
 @PreviewTest
-@Preview(name = "Settings", widthDp = 400, heightDp = 440, showBackground = true)
+@Preview(name = "Settings", widthDp = 400, heightDp = 520, showBackground = true)
 @Composable
 fun SettingsScreenshot() {
     BreakoutTheme {

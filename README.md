@@ -26,7 +26,7 @@ with a hand-written Vulkan renderer.
 
 | Settings | Foldable, half-opened: the control surface below the hinge | The level pick |
 |---|---|---|
-| <img src="docs/screenshots/phone-settings_auto.png" width="270" alt="Settings sheet: Sound on, Auto Play on, Glasses row reading NONE"> | <img src="docs/screenshots/foldable-tabletop.png" width="420" alt="Tabletop posture: the lane in the upper half, SLIDE HERE TO STEER and the paddle marker in the lower half"> | <img src="docs/screenshots/phone-level-pick.png" width="270" alt="Title screen after a run: the level pick, LEVEL 1 between two arrows, above Tap to play"> |
+| <img src="docs/screenshots/phone-settings_auto.png" width="270" alt="Settings sheet: Sound, Haptics and Auto Play on, Glasses row reading NONE, Reset progress at the bottom"> | <img src="docs/screenshots/foldable-tabletop.png" width="420" alt="Tabletop posture: the lane in the upper half, SLIDE HERE TO STEER and the paddle marker in the lower half"> | <img src="docs/screenshots/phone-level-pick.png" width="270" alt="Title screen after a run: the level pick, LEVEL 1 between two arrows, above Tap to play"> |
 
 | TV, 1080p, the lane in the middle | AI Glasses: black background, no gear |
 |---|---|
@@ -62,7 +62,8 @@ emulator with the `autoplay` launch extra.
   surface.
 - **Start where you got to:** the title screen offers any level reached
   before on this device — the arrows, or left and right on a D-pad or
-  keyboard, pick it; the record is kept across launches.
+  keyboard, pick it; the record is kept across launches. Settings has a
+  Reset progress row that forgets it along with the high scores.
 - **Pause:** a round in flight freezes when the screen goes away (the app
   goes to the background, Settings opens), on Back, or on P, Escape or a
   remote's play/pause button, and waits for a tap — PAUSED,

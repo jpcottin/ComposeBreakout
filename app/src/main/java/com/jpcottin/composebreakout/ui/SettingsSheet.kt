@@ -18,6 +18,12 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -52,12 +58,13 @@ fun SettingsSheet(
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
     onHapticsChange: (Boolean) -> Unit = {},
+    onResetProgress: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         SettingsContent(
             settings, onSoundChange, onAutoPlayChange, onDismiss,
-            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange,
+            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange, onResetProgress = onResetProgress,
         )
     }
 }
@@ -75,11 +82,12 @@ fun SettingsDialog(
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
     onHapticsChange: (Boolean) -> Unit = {},
+    onResetProgress: () -> Unit = {},
 ) {
     Dialog(onDismissRequest = onDismiss) {
         SettingsCard(
             settings, onSoundChange, onAutoPlayChange, onDismiss,
-            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange,
+            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange, onResetProgress = onResetProgress,
         )
     }
 }
@@ -95,6 +103,7 @@ fun SettingsCard(
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
     onHapticsChange: (Boolean) -> Unit = {},
+    onResetProgress: () -> Unit = {},
 ) {
     Surface(
         modifier = modifier.width(480.dp),
@@ -105,7 +114,7 @@ fun SettingsCard(
         SettingsContent(
             settings, onSoundChange, onAutoPlayChange, onDone,
             modifier = Modifier.padding(top = 16.dp),
-            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange,
+            glasses = glasses, onGlassesToggle = onGlassesToggle, onHapticsChange = onHapticsChange, onResetProgress = onResetProgress,
         )
     }
 }
@@ -121,6 +130,7 @@ fun SettingsContent(
     glasses: GlassesState = GlassesState.NONE,
     onGlassesToggle: () -> Unit = {},
     onHapticsChange: (Boolean) -> Unit = {},
+    onResetProgress: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(
@@ -151,6 +161,7 @@ fun SettingsContent(
             onCheckedChange = onAutoPlayChange,
         )
         GlassesRow(glasses, onGlassesToggle)
+        ResetRow(onResetProgress)
         Spacer(Modifier.height(16.dp))
         val doneInteraction = remember { MutableInteractionSource() }
         Button(
@@ -196,6 +207,51 @@ private fun SettingRow(
             Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+/** Clear the high scores and the level record, after a word of warning. */
+@Composable
+private fun ResetRow(onReset: () -> Unit) {
+    var asking by remember { mutableStateOf(false) }
+    val interaction = remember { MutableInteractionSource() }
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRing(interaction, shape)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClick = { asking = true },
+            )
+            .padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.RestartAlt, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.settings_reset), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.settings_reset_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (asking) {
+        AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text(stringResource(R.string.reset_confirm_title)) },
+            text = { Text(stringResource(R.string.reset_confirm_text)) },
+            confirmButton = {
+                TextButton(onClick = { asking = false; onReset() }) { Text(stringResource(R.string.reset_confirm_yes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { asking = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 }
 
