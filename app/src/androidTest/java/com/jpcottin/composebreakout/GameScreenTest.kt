@@ -179,6 +179,24 @@ class GameScreenTest {
     }
 
     @Test
+    fun aRecreatedActivityKeepsTheRound() {
+        // A rotation, a fold, a theme change: the activity is recreated and
+        // the engine, held by the ViewModel, carries on where it was.
+        val game = launchARound()
+        frames(30)
+        val score = game.score
+        val level = game.level
+        scenario.recreate()
+        frames(5)
+        val again = game()
+        assertTrue("the engine should survive the recreation", again === game)
+        assertEquals(Game.State.PLAYING, again.state)
+        assertEquals(level, again.level)
+        assertTrue(again.score >= score)
+        composeTestRule.onNodeWithContentDescription("Level $level").assertIsDisplayed()
+    }
+
+    @Test
     fun theGearPausesARoundInFlight() {
         val game = launchARound()
         composeTestRule.onNodeWithContentDescription("Settings").performClick()
