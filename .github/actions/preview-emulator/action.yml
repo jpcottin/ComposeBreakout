@@ -82,7 +82,13 @@ runs:
         # exits. With pipefail off the pipeline reports sdkmanager's status.
         set +o pipefail
         SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-        yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmdline-tools;latest" > /dev/null
+        # The download is a network call; a dropped manifest or a truncated
+        # archive has failed a leg before anything ran. Three tries.
+        for attempt in 1 2 3; do
+          if yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmdline-tools;latest" > /dev/null; then break; fi
+          echo "cmdline-tools download failed (attempt $attempt)"; rm -rf "$SDK/cmdline-tools/latest-2"; sleep 20
+          [ "$attempt" = 3 ] && exit 1
+        done
         # sdkmanager won't overwrite the preinstalled dir; it installs to latest-2.
         if [ -d "$SDK/cmdline-tools/latest-2" ]; then
           rm -rf "$SDK/cmdline-tools/latest"

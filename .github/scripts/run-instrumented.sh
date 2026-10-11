@@ -23,6 +23,22 @@ settle() {
         sleep 2
     done
     echo "device API level: ${level:-unknown}"
+    # A guest whose system server restarted reports the boot complete a
+    # second time, later. Gradle asks the device for its properties with a
+    # short timeout of its own, so wait for the boot to be complete and for
+    # three quick answers in a row before letting it look.
+    local ok=0
+    for _ in $(seq 1 90); do
+        if [ "$(timeout 10 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] &&
+           timeout 3 adb shell getprop ro.build.version.sdk >/dev/null 2>&1; then
+            ok=$((ok + 1))
+            [ "$ok" -ge 3 ] && break
+        else
+            ok=0
+        fi
+        sleep 3
+    done
+    echo "boot complete, device answering: $([ "$ok" -ge 3 ] && echo yes || echo 'not within the wait')"
     sleep 5
     adb shell settings put global window_animation_scale 0
     adb shell settings put global transition_animation_scale 0
