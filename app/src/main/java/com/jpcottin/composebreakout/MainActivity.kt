@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpcottin.composebreakout.glasses.GlassesSession
@@ -28,6 +29,12 @@ class MainActivity : ComponentActivity() {
         GlassesSession.startMonitoring(applicationContext)
         setContent {
             val viewModel: GameViewModel = viewModel(factory = GameViewModel.factory(applicationContext))
+            // A launch asked for an unattended round: Auto Play on, round
+            // started. Used from the command line to watch the game run.
+            //   adb shell am start -n com.jpcottin.composebreakout/.MainActivity --ez autoplay true
+            if (intent.getBooleanExtra(EXTRA_AUTOPLAY, false) && savedInstanceState == null) {
+                LaunchedEffect(Unit) { viewModel.startUnattendedRound() }
+            }
             BreakoutTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     GameScreen(viewModel)
@@ -36,3 +43,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/** Intent extra: start an Auto Play round as soon as the screen is up. */
+const val EXTRA_AUTOPLAY = "autoplay"

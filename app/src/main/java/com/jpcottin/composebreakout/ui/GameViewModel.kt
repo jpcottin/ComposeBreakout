@@ -118,6 +118,12 @@ class GameViewModel(
         viewModelScope.launch { store.edit { it[KEY_AUTO_PLAY] = on } }
     }
 
+    /** Auto Play on and a round started: the game plays itself from here. */
+    fun startUnattendedRound() {
+        setAutoPlay(true)
+        if (game.state == Game.State.TITLE) game.tap()
+    }
+
     override fun onCleared() {
         audio.release()
     }

@@ -193,14 +193,24 @@ Compose test harness would otherwise read as "never idle").
 
 ## CI/CD
 
-GitHub Actions runs on every push and pull request to `main`; every job gates
-merges.
+GitHub Actions runs on every push and pull request to `main`. The gating
+jobs must pass; the experimental ones run non-blocking and their results
+are read.
 
-| Job | What it does | Artifacts |
-|-----|-------------|-----------|
-| **Build, lint, tests, screenshots** | Engine JUnit tests, Android lint, app unit tests, Compose preview screenshot validation, debug APK | `debug-apk`, `screenshot-test-report` on failure |
-| **Auto Play bench** | Seeded campaigns with the autopilot on a portrait phone (100) and a landscape screen (50); fails under a 95% campaign win rate | — |
-| **Instrumented** | Launches the activity on three emulators — a phone (API 34), a foldable (API 36, `7.6in Foldable`) and a TV (API 36, `android-tv`) — starts a round by tap and by D-pad, steers with a key, checks the HUD and the settings sheet | test report on failure |
+| Job | What it does | Gates |
+|-----|-------------|-------|
+| **Build, lint, tests, screenshots** | Engine JUnit tests, Android lint, app unit tests, Compose preview screenshot validation, debug APK (`debug-apk` artifact) | yes |
+| **Auto Play bench** | Seeded campaigns with the autopilot on a portrait phone (100) and a landscape screen (50); fails under a 95% campaign win rate | yes |
+| **Instrumented** | The instrumented tests (title, a round by tap and by D-pad, the settings sheet) on emulators: phones at API 33, 34, 35 and 36, a foldable and a TV at API 36 — on the lavapipe software Vulkan GPU or the emulator's auto choice, with `-delay-adb` so a device going offline mid-boot cannot fail a leg | yes |
+| **Instrumented, experimental** | The same tests on an XR headset (API 34, `google-xr`), on a swiftshader comparison leg, and on the API 37.0, 37.1 and 37.2 page-size-16k images with the stable and canary emulators, lavapipe and auto GPU | no |
+| **Android CLI experiment** | The whole emulator flow through the Android CLI (`android sdk install`, `android emulator create/start/stop`) on the canary emulator, API 37.0 and 37.2 | no |
+| **Emulator Preview experiment** | The `emulators;latest` preview package launched by its own binary, API 37.0 and 37.2 | no |
+| **Emulator Preview multi-run** / **Android CLI multi-run** | Four boot cycles with snapshots: the game is launched once with Auto Play (`--ez autoplay true`), each cycle shuts the emulator down gracefully, and the next one checks the app is still running, drawing, and that the score read from the HUD did not go back | no |
+
+The multi-runs use the launch extra `adb shell am start -n
+com.jpcottin.composebreakout/.MainActivity --ez autoplay true`, which turns
+Auto Play on and starts a round: a way to watch the game play itself from
+the command line.
 
 ## License
 
