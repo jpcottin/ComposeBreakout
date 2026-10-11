@@ -273,7 +273,11 @@ jobs:
           disk-size: 8192M
           emulator-boot-timeout: 900
           emulator-options: -no-snapshot -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none -memory ${{ matrix.memory }} -delay-adb -verbose -show-kernel -debug-metrics -metrics-collection ${{ matrix.extra-options || '' }}
-          disable-animations: true
+          # The action's own post-boot adb commands run the instant the boot
+          # completes, and some images (the TV) restart adbd right then: the
+          # command fails and takes the leg with it. The script below settles
+          # the device first, then disables the animations itself.
+          disable-animations: false
           script: |
             echo "===== AVD root ini ====="; cat "$HOME/.android/avd/test.ini" 2>/dev/null || echo "(test.ini not found)"
             echo "===== AVD config.ini ====="; cat "$HOME/.android/avd/test.avd/config.ini" 2>/dev/null || echo "(config.ini not found)"
@@ -284,6 +288,7 @@ jobs:
             # Hold until the property reads back. One line: the action runs
             # every line of this script as its own shell command.
             for _ in $(seq 1 60); do SDK_LEVEL="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r')"; if [ -n "$SDK_LEVEL" ] && [ "$(adb get-state 2>/dev/null | tr -d '\r')" = "device" ]; then break; fi; sleep 2; done; echo "device API level: ${SDK_LEVEL:-unknown}"; sleep 5
+            adb shell settings put global window_animation_scale 0; adb shell settings put global transition_animation_scale 0; adb shell settings put global animator_duration_scale 0; adb shell input keyevent 82
             adb logcat -v time > "${{ github.workspace }}/emulator_logcat.txt" &
             ./gradlew :app:connectedDebugAndroidTest --no-daemon || { echo "=== test run failed; capturing guest diagnostics ==="; adb root >/dev/null 2>&1 || true; adb wait-for-device || true; echo "----- crash logcat buffer -----"; adb logcat -d -b crash 2>/dev/null | tail -n 300 || true; echo "----- /data/tombstones -----"; for f in $(adb shell ls /data/tombstones 2>/dev/null | tr -d '\r'); do case "$f" in *.pb) ;; *) echo "===== $f ====="; adb shell cat "/data/tombstones/$f" 2>/dev/null || true ;; esac; done; exit 1; }
 
