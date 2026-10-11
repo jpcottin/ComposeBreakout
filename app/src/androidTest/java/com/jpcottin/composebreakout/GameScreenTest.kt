@@ -2,6 +2,10 @@ package com.jpcottin.composebreakout
 
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -159,5 +163,17 @@ class GameScreenTest {
         composeTestRule.onNodeWithContentDescription("Settings").performClick()
         frames(2)
         assertTrue(game.paused)
+    }
+
+    @Test
+    fun aScreenReaderHearsTheRoundStart() {
+        frames(5)
+        composeTestRule.onNodeWithContentDescription("Playfield").performClick()
+        frames(5)
+        val liveRegion = SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)
+        composeTestRule.onNode(liveRegion and hasContentDescription("Level 1 begins")).assertExists()
+        val bricks = game().breakableLeft                            // 28 on a phone, 40 on a wide lane
+        composeTestRule.onNodeWithContentDescription("Playfield")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Level 1, $bricks bricks left, 5 lives"))
     }
 }
