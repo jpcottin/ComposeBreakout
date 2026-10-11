@@ -255,6 +255,24 @@ class Game(private val host: GameHost = GameHost.None) {
         rng = if (seed == 0) 0x1234567 else seed
     }
 
+    /** The highest level ever reached on this device; the host persists it.
+     *  The title screen lets a round start at any level up to this one. */
+    var furthestLevel: Int = 1
+        set(value) {
+            field = value.coerceIn(1, Levels.COUNT)
+            if (startLevel > field) startLevel = field
+        }
+
+    /** The level the next round starts at, chosen on the title screen. */
+    var startLevel: Int = 1
+        private set
+
+    /** Move the title screen's level pick by [delta] levels, within 1 and
+     *  [furthestLevel]. Does nothing once a round is under way. */
+    fun selectLevel(delta: Int) {
+        if (state == State.TITLE) startLevel = (startLevel + delta).coerceIn(1, furthestLevel)
+    }
+
     /** Adopt a persisted high-score table. */
     fun restoreHighScores(scores: List<HighScore>) {
         table.clear()
@@ -380,8 +398,8 @@ class Game(private val host: GameHost = GameHost.None) {
         newHighScore = false
         newHighScoreRank = -1
         bonusFlashTimer = 0f
-        level = 1
-        startLevel(1)
+        level = startLevel
+        startLevel(startLevel)
     }
 
     /** Clear every in-play entity; shared by [startLevel] and the return to
@@ -399,6 +417,10 @@ class Game(private val host: GameHost = GameHost.None) {
     private fun startLevel(level: Int) {
         paused = false
         this.level = Levels.clamp(level)
+        if (this.level > furthestLevel) {
+            furthestLevel = this.level
+            host.furthestLevelChanged(furthestLevel)
+        }
         buildWall(this.level)
         resetBattlefield()
         paddleX = 0f

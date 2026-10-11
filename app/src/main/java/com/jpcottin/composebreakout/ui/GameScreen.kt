@@ -211,6 +211,11 @@ fun GameScreen(
                     else -> 0
                 }
                 when {
+                    // On the title, left and right pick the starting level.
+                    steer != 0 && game.state == Game.State.TITLE -> {
+                        if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) game.selectLevel(steer)
+                        true
+                    }
                     steer != 0 -> {
                         when (event.type) {
                             KeyEventType.KeyDown -> game.setSteer(steer)
