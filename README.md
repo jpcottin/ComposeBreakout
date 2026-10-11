@@ -86,9 +86,9 @@ emulator with the `autoplay` launch extra.
   row highest, so the wall is a keyboard — a slide down for a lost ball, a
   rising arpeggio for a cleared level, a sparkle for a bonus, a jingle for
   an extra life, and a quiet ambient track (a pad, a bass on beats one and
-  three, an arpeggio) from the first serve to the end screen. A lost ball
-  is also a heavy click from the vibrator. The Sound switch silences all of
-  it.
+  three, an arpeggio) from the first serve to the end screen. The vibrator
+  gives a light tick per broken brick and a heavy click for a lost ball.
+  The Sound and Haptics switches silence either.
 - **Play on AI Glasses:** with Display Glasses paired, Settings shows a
   Glasses row — *PLAY* hands the game to the glasses' projected display,
   where the **touchbar** drives it: finger position steers the paddle,
