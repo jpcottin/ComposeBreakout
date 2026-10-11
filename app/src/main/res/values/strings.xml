@@ -36,5 +36,7 @@
     <string name="tap_to_resume">TAP TO RESUME</string>
     <string name="press_to_resume">PRESS OK TO RESUME</string>
     <string name="touch_to_resume">TOUCH TO RESUME</string>
+    <string name="shortcut_autoplay_short">Auto Play</string>
+    <string name="shortcut_autoplay_long">Watch the autopilot play</string>
     <string name="display_category_xr_projected" translatable="false">xr_projected</string>
 </resources>
