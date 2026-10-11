@@ -6,7 +6,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.os.Bundle
-import androidx.core.os.bundleOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -95,12 +94,12 @@ class GameViewModel(
                 game.restoreSession(s.getInt(SESSION_LEVEL), s.getLong(SESSION_SCORE), s.getInt(SESSION_LIVES))
         }
         savedState.setSavedStateProvider(KEY_SESSION) {
-            bundleOf(
-                SESSION_MID_GAME to game.isMidGame,
-                SESSION_LEVEL to game.level,
-                SESSION_SCORE to game.score,
-                SESSION_LIVES to game.lives,
-            )
+            Bundle().apply {
+                putBoolean(SESSION_MID_GAME, game.isMidGame)
+                putInt(SESSION_LEVEL, game.level)
+                putLong(SESSION_SCORE, game.score)
+                putInt(SESSION_LIVES, game.lives)
+            }
         }
         viewModelScope.launch {
             val prefs = store.data.first()

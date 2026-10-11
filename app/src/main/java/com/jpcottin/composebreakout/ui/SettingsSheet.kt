@@ -14,7 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -130,7 +130,7 @@ fun SettingsContent(
             modifier = Modifier.padding(bottom = 12.dp),
         )
         SettingRow(
-            icon = Icons.Rounded.VolumeUp,
+            icon = Icons.AutoMirrored.Rounded.VolumeUp,
             title = stringResource(R.string.settings_sound),
             hint = stringResource(R.string.settings_sound_hint),
             checked = settings.soundEnabled,
