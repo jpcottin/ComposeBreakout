@@ -166,6 +166,32 @@ class GameScreenTest {
     }
 
     @Test
+    fun escapeFreezesTheRoundAndFreesItAgain() {
+        val game = launchARound()
+        val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
+        playfield.performSemanticsAction(SemanticsActions.RequestFocus)
+        frames(2)
+        playfield.performKeyInput { keyDown(Key.Escape); keyUp(Key.Escape) }
+        frames(2)
+        assertTrue(game.paused)
+        composeTestRule.onNodeWithContentDescription("Paused").assertIsDisplayed()
+        playfield.performKeyInput { keyDown(Key.Escape); keyUp(Key.Escape) }
+        frames(5)
+        assertFalse(game.paused)
+        assertEquals(Game.State.PLAYING, game.state)
+    }
+
+    @Test
+    fun backFreezesTheRoundInsteadOfLeaving() {
+        val game = launchARound()
+        scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        frames(2)
+        assertTrue(game.paused)
+        assertEquals(Lifecycle.State.RESUMED, scenario.state)       // still here
+        composeTestRule.onNodeWithContentDescription("Paused").assertIsDisplayed()
+    }
+
+    @Test
     fun aScreenReaderHearsTheRoundStart() {
         frames(5)
         composeTestRule.onNodeWithContentDescription("Playfield").performClick()

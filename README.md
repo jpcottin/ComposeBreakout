@@ -61,7 +61,8 @@ emulator with the `autoplay` launch extra.
   the game sits above the hinge and the whole lower half is the steering
   surface.
 - **Pause:** a round in flight freezes when the screen goes away (the app
-  goes to the background, Settings opens) and waits for a tap — PAUSED,
+  goes to the background, Settings opens), on Back, or on P, Escape or a
+  remote's play/pause button, and waits for a tap — PAUSED,
   then tap, OK or the touchbar to resume. The autopilot resumes by itself,
   so an unattended run keeps going.
 - **Bonuses** drop from broken bricks: a wide paddle (10 s), a slow ball

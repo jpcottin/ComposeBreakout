@@ -2,6 +2,7 @@ package com.jpcottin.composebreakout.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -199,6 +200,9 @@ fun GameScreen(
     val background = if (glasses) Color.Black else MaterialTheme.colorScheme.background
     // What a screen reader says the field is, read once per step.
     observe(frame)
+    // Back during a round freezes it rather than leaving; once paused, Back
+    // leaves as it always did.
+    BackHandler(enabled = game.state == Game.State.PLAYING && !game.ballHeld && !game.paused) { game.pause() }
     val fieldState = if (game.isMidGame)
         stringResource(
             R.string.a11y_field_state, game.level,
@@ -234,6 +238,15 @@ fun GameScreen(
                     }
                     event.key == Key.DirectionUp && event.type == KeyEventType.KeyDown -> {
                         gearFocus.requestFocus(); true
+                    }
+                    // P, Escape and a remote's play/pause button freeze a
+                    // round in flight; pressed again they let it go on.
+                    event.key == Key.P || event.key == Key.Escape ||
+                        event.key == Key.MediaPlayPause || event.key == Key.MediaPause -> {
+                        if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) {
+                            if (game.paused) game.tap() else game.pause()
+                        }
+                        true
                     }
                     else -> false
                 }
