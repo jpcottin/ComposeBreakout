@@ -21,3 +21,6 @@ keystore.properties
 
 # Kotlin 2.x compiler session data
 .kotlin/
+
+# Gradle output captured by .github/scripts/run-instrumented.sh
+gradle-run-*.log
