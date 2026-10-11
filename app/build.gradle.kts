@@ -17,7 +17,7 @@ android {
         // 26: adaptive icons, VibrationEffect, float PCM AudioTrack. The glasses
         // path needs API 36 at runtime and is guarded; below that it stays off.
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
