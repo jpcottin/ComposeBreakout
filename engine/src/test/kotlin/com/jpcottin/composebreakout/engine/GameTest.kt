@@ -1019,3 +1019,44 @@ class PauseTest {
         assertFalse(g.paused)
     }
 }
+
+// ── The fixed timestep ───────────────────────────────────────────────────────
+
+class TimestepTest {
+    /** The same seconds of play, delivered as 60, 90 or 120 frames a second,
+     *  put the ball in the very same place. */
+    @Test fun refreshRateDoesNotChangeTheGame() {
+        fun play(frameDt: Float): Pair<Float, Float> {
+            val g = playing()
+            g.debug.setBall(0.1f, 0.2f, 0.35f, -1f)
+            var t = 0f
+            while (t < 4f - 1e-4f) { g.update(frameDt); t += frameDt }
+            return g.balls[0].x to g.balls[0].y
+        }
+        val at60 = play(1f / 60f)
+        val at90 = play(1f / 90f)
+        val at120 = play(1f / 120f)
+        assertEquals(at60.first, at90.first, 1e-4f)
+        assertEquals(at60.second, at90.second, 1e-4f)
+        assertEquals(at60.first, at120.first, 1e-4f)
+        assertEquals(at60.second, at120.second, 1e-4f)
+    }
+
+    @Test fun theRemainderOfAFrameCarriesOver() {
+        val g = newGame()
+        repeat(3) { g.update(1f / 90f) }          // 1, 1 and 2 ticks: four in all
+        assertEquals(4 * Game.TICK, g.animTime, 1e-5f)
+        g.update(Game.TICK * 0.4f)                 // not a whole tick yet
+        assertEquals(4 * Game.TICK, g.animTime, 1e-5f)
+        g.update(Game.TICK * 0.7f)                 // now it is
+        assertEquals(5 * Game.TICK, g.animTime, 1e-5f)
+    }
+
+    @Test fun aHitchIsClampedNotSkipped() {
+        val g = newGame()
+        g.update(5f)
+        assertEquals(Game.MAX_FRAME, g.animTime, 1e-5f)
+        g.update(-1f)
+        assertEquals(Game.MAX_FRAME, g.animTime, 1e-5f)
+    }
+}
