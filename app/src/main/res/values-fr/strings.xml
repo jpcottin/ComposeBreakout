@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Compose Breakout</string>
+    <string name="title_line">BREAKOUT</string>
+    <string name="tap_to_play">Touchez pour jouer</string>
+    <string name="press_to_play">Appuyez sur OK pour jouer</string>
+    <string name="tap_to_launch">TOUCHEZ POUR LANCER</string>
+    <string name="press_to_launch">OK POUR LANCER</string>
+    <string name="level_clear">NIVEAU</string>
+    <string name="game_over">PERDU</string>
+    <string name="you_win">GAGNÉ</string>
+    <string name="new_high_score">NOUVEAU RECORD</string>
+    <string name="hud_score">Score</string>
+    <string name="hud_lives">Vies</string>
+    <string name="hud_level">Niveau</string>
+    <string name="auto_badge">AUTO</string>
+    <string name="slide_to_steer">GLISSEZ ICI POUR DIRIGER</string>
+    <string name="settings">Réglages</string>
+    <string name="settings_sound">Son</string>
+    <string name="settings_sound_hint">Les effets et la musique d\'ambiance</string>
+    <string name="settings_auto_play">Pilote automatique</string>
+    <string name="settings_auto_play_hint">Le pilote joue la partie à votre place</string>
+    <string name="settings_done">OK</string>
+    <string name="settings_glasses">Lunettes</string>
+    <string name="settings_glasses_none">Aucunes lunettes IA appairées</string>
+    <string name="settings_glasses_connected">Appairées : jouez sur les lunettes, la barre tactile dirige</string>
+    <string name="settings_glasses_active">La partie se joue sur les lunettes ; le téléphone attend</string>
+    <string name="settings_glasses_play">Jouer</string>
+    <string name="settings_glasses_phone">Téléphone</string>
+    <string name="settings_glasses_unavailable">Aucune</string>
+    <string name="on_glasses">SUR LES LUNETTES</string>
+    <string name="on_glasses_hint">Les réglages ramènent la partie</string>
+    <string name="touch_to_play">Touchez la barre pour jouer</string>
+    <string name="touch_to_launch">TOUCHEZ POUR LANCER</string>
+</resources>
