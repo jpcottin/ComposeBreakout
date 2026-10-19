@@ -748,6 +748,89 @@ class RestoreSessionTest {
             assertEquals(0L, g.score)
         }
     }
+
+    @Test fun acceptsTheBoundaries() {
+        val g = newGame()
+        g.restoreSession(Levels.COUNT, 0, Game.MAX_LIVES)
+        assertEquals(Game.State.PLAYING, g.state)
+        assertEquals(Levels.COUNT, g.level)
+        assertEquals(Game.MAX_LIVES, g.lives)
+        val h = newGame()
+        h.restoreSession(1, 0, 1)
+        assertEquals(Game.State.PLAYING, h.state)
+        assertEquals(1, h.lives)
+    }
+
+    // The saved round may sit past the record the host has stored (the
+    // record is written asynchronously): the restore raises it and says so.
+    @Test fun restoringPastTheRecordRaisesIt() {
+        val host = RecordingHost()
+        val g = newGame(host = host)
+        g.restoreSession(7, 500, 3)
+        assertEquals(7, g.furthestLevel)
+        assertEquals(listOf(7), host.furthest)
+    }
+
+    // A restore mid-round (a stale saved state applied late) replaces the
+    // round in flight wholesale: fresh wall, held serve, no bonus left over.
+    @Test fun replacesTheRoundInFlight() {
+        val g = playing()
+        g.debug.setScore(900)
+        g.debug.setLives(2)
+        g.debug.launch()
+        g.debug.activatePowerUp(Game.PowerUpType.WIDE)
+        g.debug.killBrick(0)
+        step(g, 0.5f)
+        g.pause()
+        assertTrue(g.paused)
+        g.restoreSession(2, 40, 4)
+        assertEquals(2, g.level)
+        assertEquals(40L, g.score)
+        assertEquals(4, g.lives)
+        assertTrue(g.ballHeld)
+        assertFalse(g.paused)
+        assertEquals(0f, g.wideTimer, 0f)
+        assertTrue(g.bricks.all { it.alive })
+        assertEquals(0, g.bricksBroken)
+    }
+
+    // The restored lives are the ones at stake: with one left, the next lost
+    // ball ends the game, and the restored score goes to the table.
+    @Test fun restoredLivesAreTheOnesAtStake() {
+        val g = newGame()
+        g.restoreSession(3, 900, 1)
+        g.debug.launch()
+        loseABall(g)
+        assertEquals(Game.State.GAME_OVER, g.state)
+        assertEquals(listOf(HighScore(900, 3)), g.highScores)
+        assertTrue(g.newHighScore)
+    }
+
+    // The title screen's level pick is not the saved round's level.
+    @Test fun leavesTheTitlePickAlone() {
+        val g = newGame()
+        g.furthestLevel = 8
+        g.selectLevel(2)
+        assertEquals(3, g.startLevel)
+        g.restoreSession(6, 100, 3)
+        assertEquals(6, g.level)
+        assertEquals(3, g.startLevel)
+    }
+
+    // A held serve has nothing to freeze, so a pause straight after the
+    // restore (the activity is still coming up) leaves the round playable.
+    @Test fun aRestoredServeIgnoresAnEarlyPause() {
+        val g = newGame()
+        g.restoreSession(2, 100, 3)
+        g.pause()
+        assertFalse(g.paused)
+        assertTrue(g.isMidGame)
+        step(g, 0.5f)
+        g.debug.launch()
+        assertFalse(g.ballHeld)
+        step(g, 0.5f)
+        assertEquals(Game.State.PLAYING, g.state)
+    }
 }
 
 // ── High scores ──────────────────────────────────────────────────────────────
