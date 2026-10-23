@@ -188,11 +188,7 @@ class GameViewModel(
         // The phone and the glasses instances share the store: fold the other
         // one's rows in rather than overwrite them.
         viewModelScope.launch {
-            store.edit { prefs ->
-                val merged = (decodeScores(prefs[KEY_HIGH_SCORES]) + table)
-                    .distinct().sortedByDescending { it.score }.take(Game.MAX_SCORES)
-                prefs[KEY_HIGH_SCORES] = encodeScores(merged)
-            }
+            store.edit { prefs -> prefs[KEY_HIGH_SCORES] = mergeScores(prefs[KEY_HIGH_SCORES], table) }
         }
     }
 
@@ -221,6 +217,11 @@ class GameViewModel(
                 val level = parts.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
                 if (score <= 0L) null else HighScore(score, level)
             }
+
+        /** The stored table with [table] folded in: no duplicate rows, best
+         *  first, capped at [Game.MAX_SCORES]. Encoded, ready to store. */
+        internal fun mergeScores(stored: String?, table: List<HighScore>): String =
+            encodeScores((decodeScores(stored) + table).distinct().sortedByDescending { it.score }.take(Game.MAX_SCORES))
 
         fun factory(context: Context, role: Role = Role.PHONE): ViewModelProvider.Factory = viewModelFactory {
             initializer {
