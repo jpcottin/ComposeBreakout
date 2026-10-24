@@ -1227,6 +1227,22 @@ class LevelSelectTest {
         assertEquals(listOf(2), host.furthest)
     }
 
+    @Test fun aSessionSavedInTheInterludeResumesAtTheNextLevel() {
+        val g = newGame()
+        g.debug.startGame()
+        g.debug.clearWall()
+        g.debug.setBall(0f, 0.3f, 0f, -1f)
+        var frames = 0
+        while (g.state != Game.State.LEVEL_CLEAR && frames++ < 600) g.update(DT)
+        assertEquals(Game.State.LEVEL_CLEAR, g.state)
+        assertTrue(g.isMidGame)                          // worth saving...
+        assertEquals(1, g.level)                         // ...but not as the wall just cleared
+        assertEquals(2, g.resumeLevel)
+        step(g, 5f)                                      // into level 2
+        assertEquals(Game.State.PLAYING, g.state)
+        assertEquals(2, g.resumeLevel)
+    }
+
     @Test fun aRestoredRecordNeverGoesDown() {
         val g = newGame()
         g.debug.startLevel(5)

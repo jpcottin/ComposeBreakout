@@ -97,7 +97,7 @@ class GameViewModel(
         savedState.setSavedStateProvider(KEY_SESSION) {
             Bundle().apply {
                 putBoolean(SESSION_MID_GAME, game.isMidGame)
-                putInt(SESSION_LEVEL, game.level)
+                putInt(SESSION_LEVEL, game.resumeLevel)
                 putLong(SESSION_SCORE, game.score)
                 putInt(SESSION_LIVES, game.lives)
             }
