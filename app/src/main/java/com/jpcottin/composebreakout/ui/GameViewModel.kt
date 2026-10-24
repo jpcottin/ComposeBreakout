@@ -11,6 +11,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.edit
+import java.io.IOException
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.Flow
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.SavedStateHandle
@@ -69,8 +73,15 @@ class GameViewModel(
     /** The synth and its speaker thread. Paused unless the activity is resumed. */
     val audio = AudioOutput()
 
+    /** The preferences as stored, with a read error (a damaged file, a failed disk)
+     *  read as "nothing stored" rather than thrown into whoever collects: a
+     *  crash on launch would otherwise follow the file around until it is cleared. */
+    private val prefs: Flow<Preferences> = store.data.catch { e ->
+        if (e is IOException) emit(emptyPreferences()) else throw e
+    }
+
     /** Last persisted settings; the switches in the settings sheet edit these. */
-    val settings = store.data.map { prefs ->
+    val settings = prefs.map { prefs ->
         Settings(
             soundEnabled = prefs[KEY_SOUND] ?: true,
             autoPlay = prefs[KEY_AUTO_PLAY] ?: false,
@@ -86,7 +97,7 @@ class GameViewModel(
             // glasses instance scored when the session ends.
             GlassesSession.active.collect { active ->
                 game.glassesActive = active
-                if (!active) game.restoreHighScores(decodeScores(store.data.first()[KEY_HIGH_SCORES]) + game.highScores)
+                if (!active) game.restoreHighScores(decodeScores(prefs.first()[KEY_HIGH_SCORES]) + game.highScores)
             }
         }
         // The round saved by a previous instance of this process, if any.
@@ -103,7 +114,7 @@ class GameViewModel(
             }
         }
         viewModelScope.launch {
-            val prefs = store.data.first()
+            val prefs = prefs.first()
             game.soundEnabled = prefs[KEY_SOUND] ?: true
             game.autoPlayActive = prefs[KEY_AUTO_PLAY] ?: false
             hapticsEnabled = prefs[KEY_HAPTICS] ?: true
@@ -116,7 +127,13 @@ class GameViewModel(
             // launching intent's extras, so this runs once per ViewModel
             // whatever the activity does.
             //   adb shell am start -n com.jpcottin.composebreakout/.MainActivity --ez autoplay true
-            if (savedState.get<Boolean>(EXTRA_AUTOPLAY) == true) startUnattendedRound()
+            if (savedState.get<Boolean>(EXTRA_AUTOPLAY) == true) {
+                startUnattendedRound()
+                // Consumed: the launching intent's extras come back with every
+                // restored state, and a second unattended round after process
+                // death would override whatever the player chose since.
+                savedState[EXTRA_AUTOPLAY] = false
+            }
         }
     }
 
