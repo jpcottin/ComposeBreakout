@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 # A new push to a pull request cancels the run its previous push started:
-# the 23 emulator legs are the whole queue, and only the latest commit's
+# the 22 emulator legs are the whole queue, and only the latest commit's
 # verdict matters. Runs on main (and by hand) each get a group of their
 # own, so none of them is ever cancelled or held behind another.
 concurrency:

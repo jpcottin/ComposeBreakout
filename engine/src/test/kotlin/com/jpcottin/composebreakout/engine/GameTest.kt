@@ -108,6 +108,16 @@ class InitialStateTest {
 
 // ── The wall ──────────────────────────────────────────────────────────────────
 
+class NarrowWindowTest {
+    @Test fun aWindowNarrowerThanThePaddleKeepsItCentredInsteadOfThrowing() {
+        val g = newGame(aspect = 0.08f)              // narrower than the paddle itself
+        startGame(g)
+        g.setSteer(1)
+        step(g, 0.5f)                                // steering, bouncing, clamping every frame
+        assertEquals(0f, g.paddleX, 1e-6f)
+    }
+}
+
 class WallTest {
     @Test fun columnsFollowTheLaneWidth() {
         assertEquals(7, World.wallColumns(PHONE))
