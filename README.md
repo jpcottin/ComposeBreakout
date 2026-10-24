@@ -241,7 +241,7 @@ are read.
 | **Instrumented** | The instrumented tests (title, a round by tap and by D-pad, the settings sheet) on emulators: phones at API 33, 34, 35 and 36, a foldable and a TV at API 36 — on the lavapipe software Vulkan GPU or the emulator's auto choice, with `-delay-adb` so a device going offline mid-boot cannot fail a leg. The TV leg boots its emulator itself (`.github/scripts/boot-emulator.sh`), as that image restarts adbd right after boot and the runner action's first key press used to meet it | yes |
 | **Instrumented, experimental** | The same tests on an XR headset (API 34, `google-xr`), on a swiftshader comparison leg, and on the API 37.0, 37.1 and 37.2 page-size-16k images with the stable and canary emulators, lavapipe and auto GPU | no |
 | **Android CLI experiment** | The whole emulator flow through the Android CLI (`android sdk install`, `android emulator create/start/stop`) on the canary emulator, API 37.0 and 37.2 | no |
-| **Emulator Preview experiment** | The `emulators;latest` preview package launched by its own binary, API 37.0 and 37.2 | no |
+| **Emulator Preview experiment** | The `emulators;latest` preview package launched by its own binary, API 37.0, 37.1 and 37.2 | no |
 | **Emulator Preview multi-run** / **Android CLI multi-run** | Four boot cycles with snapshots: the game is launched once with Auto Play (`--ez autoplay true`), each cycle shuts the emulator down gracefully, and the next one checks the app is still running, drawing, and that the score read from the HUD did not go back. The Android CLI run plays the shrunk release APK, the only job that does | no |
 
 The multi-runs use the launch extra `adb shell am start -n
