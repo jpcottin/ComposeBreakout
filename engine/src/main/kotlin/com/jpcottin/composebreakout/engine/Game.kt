@@ -248,7 +248,7 @@ class Game(private val host: GameHost = GameHost.None) {
             }
         }
         clampPaddle()
-        val lim = fieldHalfWidth - World.PADDLE_HW
+        val lim = (fieldHalfWidth - World.PADDLE_HW).coerceAtLeast(0f)
         demoPaddleX = demoPaddleX.coerceIn(-lim, lim)
     }
 
@@ -463,7 +463,10 @@ class Game(private val host: GameHost = GameHost.None) {
         }
 
     private fun clampPaddle() {
-        val lim = fieldHalfWidth - paddleHalfWidth
+        // A window narrower than the paddle (an absurd aspect, but a window
+        // nonetheless) pins it to the centre instead of throwing on an
+        // inverted range.
+        val lim = (fieldHalfWidth - paddleHalfWidth).coerceAtLeast(0f)
         paddleX = paddleX.coerceIn(-lim, lim)
     }
 
