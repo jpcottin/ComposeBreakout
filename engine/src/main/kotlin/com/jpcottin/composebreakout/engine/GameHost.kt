@@ -14,8 +14,10 @@ data class HighScore(val score: Long, val level: Int)
 interface GameHost {
     /** Play a one-shot effect. */
     fun sound(event: SoundEvent) {}
-    /** A brick broke: a pop pitched by its row (Hz). */
+    /** A brick broke: a pop pitched by its row (Hz). Only while sound is on. */
     fun brickBreak(hz: Float) {}
+    /** A brick broke, whatever the sound setting: the light tick under the finger. */
+    fun brickBroken() {}
     /** Whether the ambient track should play right now. */
     fun music(on: Boolean) {}
     /** A short pulse: a ball was lost. */

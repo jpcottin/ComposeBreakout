@@ -494,6 +494,7 @@ class Game(private val host: GameHost = GameHost.None) {
         score += br.type.points.toLong() * level
         // The ball speeds up as the wall thins.
         speedBoost = if (wallTotal > 0) 1f - breakableLeft.toFloat() / wallTotal else 0f
+        host.brickBroken()
         if (soundEnabled) {
             // One semitone per row, the top row highest: the wall is a keyboard.
             host.brickBreak(523.25f * 2f.pow((rows - 1 - br.row) / 12f))

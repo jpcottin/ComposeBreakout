@@ -24,6 +24,8 @@ private class RecordingHost : GameHost {
     val tables = ArrayList<List<HighScore>>()
     override fun sound(event: SoundEvent) { sounds.add(event) }
     override fun brickBreak(hz: Float) { breaks.add(hz) }
+    var bricks = 0
+    override fun brickBroken() { bricks++ }
     override fun music(on: Boolean) { music.add(on) }
     override fun haptic() { haptics++ }
     override fun highScoresChanged(table: List<HighScore>) { tables.add(table) }
@@ -907,6 +909,7 @@ class HostTest {
         step(g, 0.3f)
         assertEquals(1, host.breaks.size)
         assertEquals(523.25f, host.breaks[0], 0.01f)   // the bottom row is the lowest note
+        assertEquals(1, host.bricks)
     }
 
     @Test fun lostBallIsFeltAndHeard() {
@@ -915,6 +918,17 @@ class HostTest {
         loseABall(g)
         assertEquals(1, host.haptics)
         assertTrue(SoundEvent.BALL_LOST in host.sounds)
+    }
+
+    @Test fun theBrickTickDoesNotDependOnSound() {
+        val host = RecordingHost()
+        val g = playing(host = host)
+        g.soundEnabled = false
+        val target = brickAt(g, g.rows - 1, 3)
+        g.debug.setBall(g.brickX(target), g.brickY(target) + 0.15f, 0f, -1f)
+        step(g, 0.3f)
+        assertTrue(host.breaks.isEmpty())                // no pop...
+        assertEquals(1, host.bricks)                     // ...but the brick still broke, so the tick fires
     }
 
     @Test fun soundOffSilencesEverything() {
