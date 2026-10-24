@@ -12,6 +12,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
@@ -175,6 +177,23 @@ class GameScreenTest {
         assertEquals(Game.State.PLAYING, game.state)
         assertTrue(game.balls.isNotEmpty() && !game.ballHeld)
         return game
+    }
+
+    @Test
+    fun aCancelledTouchLetsGoOfThePaddle() {
+        val game = launchARound()
+        val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
+        playfield.performTouchInput {
+            down(Offset(width * 0.3f, height * 0.95f))               // a thumb on the control strip
+            moveBy(Offset(60f, 0f))
+        }
+        frames(2)
+        assertTrue("the strip should be held", game.moveHeld)
+        // The system takes the gesture away (a home swipe, the shade, a call):
+        // Compose reports it as a cancel, which must still let go.
+        playfield.performTouchInput { cancel() }
+        frames(2)
+        assertFalse("a cancelled touch must release the strip", game.moveHeld)
     }
 
     @Test

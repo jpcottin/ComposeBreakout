@@ -50,6 +50,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -241,7 +242,9 @@ fun GameScreen(
                         if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) game.tap()
                         true
                     }
-                    event.key == Key.DirectionUp && event.type == KeyEventType.KeyDown -> {
+                    // The gear exists on the phone only; on the glasses there is
+                    // nothing above the playfield to move focus to.
+                    !glasses && event.key == Key.DirectionUp && event.type == KeyEventType.KeyDown -> {
                         gearFocus.requestFocus(); true
                     }
                     // P, Escape and a remote's play/pause button freeze a
@@ -265,13 +268,18 @@ fun GameScreen(
                         val event = awaitPointerEvent()
                         val asp = size.width.toFloat() / size.height
                         for (change in event.changes) {
+                            val id = change.id.value.toInt()
+                            // A lift always reaches the engine: a gesture the
+                            // system takes away (home swipe, shade, a call)
+                            // arrives as an already-consumed lift, and losing
+                            // it would leave a phantom finger on the paddle.
+                            // An id the engine never saw is a harmless no-op.
+                            if (change.changedToUpIgnoreConsumed()) { game.onPointerUp(id); change.consume(); continue }
                             if (change.isConsumed) continue
                             val wx = (change.position.x / size.width * 2f - 1f) * asp
                             val wy = change.position.y / size.height * 2f - 1f
-                            val id = change.id.value.toInt()
                             when {
                                 change.changedToDown() -> game.onPointerDown(id, wx, wy)
-                                change.changedToUp() -> game.onPointerUp(id)
                                 change.pressed -> game.onPointerMove(id, wx, wy)
                             }
                             change.consume()
@@ -362,14 +370,16 @@ private fun ControlSurface(game: Game, frame: LongState, modifier: Modifier = Mo
                     while (true) {
                         val event = awaitPointerEvent()
                         for (change in event.changes) {
+                            val id = change.id.value.toInt() + CONTROL_SURFACE_POINTER_BASE
+                            // As on the playfield: a lift, even one the system
+                            // consumed by cancelling the gesture, lets go.
+                            if (change.changedToUpIgnoreConsumed()) { game.onPointerUp(id); change.consume(); continue }
                             if (change.isConsumed) continue
                             // The surface spans the playfield's width: its x
                             // is the playfield's x, its y is the strip.
                             val wx = (change.position.x / size.width * 2f - 1f) * game.aspect
-                            val id = change.id.value.toInt() + CONTROL_SURFACE_POINTER_BASE
                             when {
                                 change.changedToDown() -> game.onPointerDown(id, wx, CONTROL_SURFACE_Y)
-                                change.changedToUp() -> game.onPointerUp(id)
                                 change.pressed -> game.onPointerMove(id, wx, CONTROL_SURFACE_Y)
                             }
                             change.consume()
