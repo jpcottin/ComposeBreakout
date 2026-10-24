@@ -194,8 +194,8 @@ balls it loses. Every Auto Play change is measured here before it ships:
 
 CI runs it with `--min-campaign-win 95` on a portrait phone, a landscape
 screen and a foldable's inner screen: fewer than 95% of campaigns won fails
-the build. The current autopilot wins 100% of portrait campaigns and 98% on
-the two wide screens, where one run in fifty stalls on the last bricks.
+the build. The current autopilot wins 97% of portrait campaigns and 98% on
+the two wide screens; the runs it loses stall on the last bricks.
 
 ## Build & run
 
