@@ -1,6 +1,17 @@
 package com.jpcottin.composebreakout
 
 import androidx.compose.foundation.layout.Box
+import java.util.Locale
+import com.jpcottin.composebreakout.ui.GameScreen
+import com.jpcottin.composebreakout.engine.Game
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.CompositionLocalProvider
+import android.os.LocaleList
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
@@ -42,4 +53,20 @@ class AppLayerTest {
         }
         composeTestRule.onNodeWithText("Done").performScrollTo().assertIsDisplayed()
     }
+
+    @Test
+    fun aFrenchScreenReaderHearsFrenchLabels() {
+        val base = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = Configuration(base.resources.configuration).apply { setLocales(LocaleList(Locale.FRENCH)) }
+        val french = base.createConfigurationContext(config)
+        val game = Game().apply { setAspect(411f / 891f) }
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalContext provides french, LocalConfiguration provides config, LocalResources provides french.resources) {
+                BreakoutTheme { GameScreen(game, Settings(), onOpenSettings = {}, paused = true) }
+            }
+        }
+        composeTestRule.onNodeWithContentDescription(french.getString(R.string.a11y_playfield)).assertExists()
+        composeTestRule.onNodeWithContentDescription("Playfield").assertDoesNotExist()
+    }
+
 }

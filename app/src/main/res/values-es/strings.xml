@@ -66,4 +66,10 @@
     <string name="a11y_game_over">Fin del juego, %1$d puntos</string>
     <string name="a11y_win">Has ganado, %1$d puntos</string>
     <string name="a11y_paused">Juego en pausa</string>
+    <string name="a11y_playfield">Campo de juego</string>
+    <string name="a11y_control_surface">Superficie de control</string>
+    <string name="a11y_hud">Indicadores</string>
+    <string name="a11y_start_level">Empezar en el nivel %1$d</string>
+    <string name="a11y_paused_overlay">En pausa</string>
+    <string name="a11y_final_score">Puntuación final %1$d</string>
 </resources>

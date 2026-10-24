@@ -84,6 +84,9 @@ internal fun Announcer(game: Game, frame: LongState) {
             AnnouncerEvents.Kind.GAME_OVER -> gameOver
             AnnouncerEvents.Kind.WIN -> win
             AnnouncerEvents.Kind.PAUSED -> paused
+            // An equal value is no change for the live region: clear it on a
+            // resume so the next pause is announced too.
+            AnnouncerEvents.Kind.RESUMED -> ""
         }
     }
     Box(
@@ -98,7 +101,7 @@ internal fun Announcer(game: Game, frame: LongState) {
 
 /** Watches the engine step by step and names what just happened. */
 private class AnnouncerEvents {
-    enum class Kind { LEVEL_START, LEVEL_CLEAR, BALL_LOST, GAME_OVER, WIN, PAUSED }
+    enum class Kind { LEVEL_START, LEVEL_CLEAR, BALL_LOST, GAME_OVER, WIN, PAUSED, RESUMED }
 
     private var state = Game.State.TITLE
     private var level = 0
@@ -117,6 +120,7 @@ private class AnnouncerEvents {
             }
         } else if (game.state == Game.State.PLAYING) {
             if (game.paused && !paused) kind = Kind.PAUSED
+            else if (!game.paused && paused) kind = Kind.RESUMED
             else if (game.lives < lives) kind = Kind.BALL_LOST
             else if (game.level != level) kind = Kind.LEVEL_START
         }
@@ -201,11 +205,12 @@ internal fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, hin
                         enabled = game.startLevel > 1,
                         modifier = Modifier.semantics { contentDescription = previous },
                     ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = PaddleCyan) }
+                    val startLevelLabel = stringResource(R.string.a11y_start_level, game.startLevel)
                     Text(
                         text = stringResource(R.string.start_level, game.startLevel),
                         style = MaterialTheme.typography.titleMedium.scaled(textScale),
                         color = PaddleCyan,
-                        modifier = Modifier.padding(horizontal = 8.dp).semantics { contentDescription = "Start level ${game.startLevel}" },
+                        modifier = Modifier.padding(horizontal = 8.dp).semantics { contentDescription = startLevelLabel },
                     )
                     if (arrows) IconButton(
                         onClick = { game.selectLevel(1) },
@@ -235,13 +240,14 @@ internal fun TitleOverlay(game: Game, frame: LongState, farViewing: Boolean, hin
 @Composable
 internal fun Hud(game: Game, frame: LongState, chromePadding: androidx.compose.ui.unit.Dp, textScale: Float, autoPlay: Boolean) {
     observe(frame)
+    val hudLabel = stringResource(R.string.a11y_hud)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = chromePadding, vertical = 6.dp)
             .padding(end = 48.dp)   // the gear's column
-            .semantics { contentDescription = "HUD" },
+            .semantics { contentDescription = hudLabel },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val scoreLabel = stringResource(R.string.hud_score)
@@ -307,11 +313,12 @@ internal fun PausedOverlay(game: Game, frame: LongState, hint: InputHint, textSc
     observe(frame)
     val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
     Box(Modifier.fillMaxSize().background(Color(0x66060812))) {
+        val pausedLabel = stringResource(R.string.a11y_paused_overlay)
         Text(
             text = stringResource(R.string.paused),
             style = MaterialTheme.typography.displayMedium.scaled(textScale),
             color = PaddleCyan,
-            modifier = Modifier.atWorld(0f, -0.05f).semantics { contentDescription = "Paused" },
+            modifier = Modifier.atWorld(0f, -0.05f).semantics { contentDescription = pausedLabel },
         )
         Text(
             text = stringResource(
@@ -369,12 +376,13 @@ internal fun EndScreen(game: Game, frame: LongState, title: String, tint: Color,
             }
         }
         val scoreColor = if (game.newHighScore) TitleGold.copy(alpha = 0.8f + 0.2f * pulse) else Color.White
+        val finalScoreLabel = stringResource(R.string.a11y_final_score, game.score)
         Text(
             text = "%,d".format(game.score),
             style = MaterialTheme.typography.displayLarge.copy(fontSize = 64.sp * textScale),
             color = scoreColor,
             maxLines = 1,
-            modifier = Modifier.atWorld(0f, -0.05f).semantics { contentDescription = "Final score ${game.score}" },
+            modifier = Modifier.atWorld(0f, -0.05f).semantics { contentDescription = finalScoreLabel },
         )
         Text(
             text = title,

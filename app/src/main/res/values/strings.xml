@@ -64,5 +64,11 @@
     <string name="a11y_game_over">Game over, score %1$d</string>
     <string name="a11y_win">You win, score %1$d</string>
     <string name="a11y_paused">Game paused</string>
+    <string name="a11y_playfield">Playfield</string>
+    <string name="a11y_control_surface">Control surface</string>
+    <string name="a11y_hud">HUD</string>
+    <string name="a11y_start_level">Start level %1$d</string>
+    <string name="a11y_paused_overlay">Paused</string>
+    <string name="a11y_final_score">Final score %1$d</string>
     <string name="display_category_xr_projected" translatable="false">xr_projected</string>
 </resources>

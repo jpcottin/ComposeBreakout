@@ -341,4 +341,18 @@ class GameScreenTest {
         composeTestRule.onNodeWithContentDescription("Playfield")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Level 1, $bricks bricks left, 5 lives"))
     }
+
+    @Test
+    fun everyPauseIsAnnounced() {
+        val game = launchARound()
+        val playfield = focusThePlayfield()
+        val live = SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)
+        playfield.performKeyInput { keyDown(Key.Escape); keyUp(Key.Escape) }
+        stepUntil(10) { game.paused }; frames(2)
+        composeTestRule.onNode(live and hasContentDescription("Game paused")).assertExists()
+        playfield.performKeyInput { keyDown(Key.Escape); keyUp(Key.Escape) }
+        stepUntil(10) { !game.paused }; frames(2)
+        composeTestRule.onNode(live and hasContentDescription("Game paused")).assertDoesNotExist()
+    }
+
 }
