@@ -164,6 +164,7 @@ fun GameScreen(
     // tells Compose a step happened. Everything that shows engine state
     // reads it (see [observe]) and so recomposes or redraws once per step.
     val frame = remember { mutableLongStateOf(0L) }
+    val playfieldLabel = stringResource(R.string.a11y_playfield)
 
     // The frame loop: one engine step per vsync, with the real elapsed time.
     LaunchedEffect(paused) {
@@ -288,7 +289,7 @@ fun GameScreen(
                 }
             }
             .semantics {
-                contentDescription = "Playfield"
+                contentDescription = playfieldLabel
                 stateDescription = fieldState
             },
     ) {
@@ -361,6 +362,7 @@ fun GameScreen(
 private fun ControlSurface(game: Game, frame: LongState, modifier: Modifier = Modifier) {
     observe(frame)
     val held = game.moveHeld
+    val controlSurfaceLabel = stringResource(R.string.a11y_control_surface)
     Box(
         modifier = modifier
             .background(MaterialTheme.colorScheme.surface)
@@ -387,7 +389,7 @@ private fun ControlSurface(game: Game, frame: LongState, modifier: Modifier = Mo
                     }
                 }
             }
-            .semantics { contentDescription = "Control surface" },
+            .semantics { contentDescription = controlSurfaceLabel },
     ) {
         Canvas(Modifier.fillMaxSize()) {
             // The steering marker, under the paddle: where the finger acts.
