@@ -28,6 +28,7 @@ import com.jpcottin.composebreakout.audio.AudioOutput
 import com.jpcottin.composebreakout.engine.Game
 import com.jpcottin.composebreakout.engine.GameHost
 import com.jpcottin.composebreakout.engine.HighScore
+import com.jpcottin.composebreakout.engine.Levels
 import com.jpcottin.composebreakout.engine.SoundEvent
 import com.jpcottin.composebreakout.glasses.GlassesSession
 import kotlinx.coroutines.flow.collect
@@ -233,7 +234,7 @@ class GameViewModel(
                 val parts = entry.split(':')
                 val score = parts.getOrNull(0)?.toLongOrNull() ?: return@mapNotNull null
                 val level = parts.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
-                if (score <= 0L) null else HighScore(score, level)
+                if (score <= 0L || level !in 1..Levels.COUNT) null else HighScore(score, level)
             }
 
         /** The stored table with [table] folded in: no duplicate rows, best

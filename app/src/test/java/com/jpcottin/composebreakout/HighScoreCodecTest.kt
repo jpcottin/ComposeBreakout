@@ -27,6 +27,11 @@ class HighScoreCodecTest {
     }
 
     @Test
+    fun anOutOfRangeLevelIsForgotten() {
+        assertEquals(listOf(HighScore(300, 4)), GameViewModel.decodeScores("100:0,200:99,300:4,400:-1"))
+    }
+
+    @Test
     fun keepsTheLevelWithEachScore() {
         assertEquals(listOf(HighScore(10, 7), HighScore(10, 2)), GameViewModel.decodeScores("10:7,10:2"))
     }

@@ -746,8 +746,7 @@ class Game(private val host: GameHost = GameHost.None) {
                 if (b.y < top && b.dy < 0f) { b.y = top; b.dy = -b.dy; ensureMinDy(b); sound(SoundEvent.WALL) }
 
                 // The paddle: only its top face, only a falling ball.
-                if (b.dy > 0f && b.y + World.BALL_R >= paddleTop &&
-                    b.y - World.BALL_R <= World.PADDLE_Y + World.PADDLE_HH &&
+                if (b.dy > 0f && b.y + World.BALL_R >= paddleTop && b.y <= paddleTop &&
                     abs(b.x - paddleX) <= phw + World.BALL_R) {
                     b.y = paddleTop - World.BALL_R
                     bounceOffPaddle(b)
@@ -762,7 +761,16 @@ class Game(private val host: GameHost = GameHost.None) {
                     val px = World.BRICK_HW + World.BALL_R - abs(dx)
                     val py = World.BRICK_HH + World.BALL_R - abs(dy)
                     if (px <= 0f || py <= 0f) continue
-                    if (px < py) {
+                    // Least penetration decides the face, unless that push
+                    // would send the ball through the lane's side or the
+                    // ceiling (the margins there are narrower than the ball):
+                    // then it was the other face. Otherwise the wall clamp
+                    // throws the ball straight back into the brick on the
+                    // next substep, and it is hit again, and again.
+                    var sideways = px < py
+                    if (sideways && abs(b.x + (if (dx > 0f) px else -px)) > lim) sideways = false
+                    else if (!sideways && dy < 0f && b.y - py < top) sideways = true
+                    if (sideways) {
                         b.dx = if (dx > 0f) abs(b.dx) else -abs(b.dx)
                         b.x += if (dx > 0f) px else -px
                     } else {
@@ -771,7 +779,9 @@ class Game(private val host: GameHost = GameHost.None) {
                     }
                     ensureMinDy(b)
                     hitBrick(br)
-                    b.dry = 0f
+                    // Bouncing off steel is not progress: the stall breaker
+                    // in Auto Play counts on `dry` growing under a shield.
+                    if (br.type != BrickType.STEEL) b.dry = 0f
                     break
                 }
 
@@ -926,7 +936,10 @@ class Game(private val host: GameHost = GameHost.None) {
                         if (gap < closest) closest = gap
                     }
                     if (px <= 0f || py <= 0f) continue
-                    if (px < py) {
+                    var sideways = px < py                      // the same corner rule as updateBalls
+                    if (sideways && abs(x + (if (bx > 0f) px else -px)) > lim) sideways = false
+                    else if (!sideways && by < 0f && y - py < top) sideways = true
+                    if (sideways) {
                         dx = if (bx > 0f) abs(dx) else -abs(dx)
                         x += if (bx > 0f) px else -px
                     } else {
@@ -967,7 +980,7 @@ class Game(private val host: GameHost = GameHost.None) {
         val wallAtLanding = hp.copyOf()
 
         val hw = paddleHalfWidth
-        val lim = fieldHalfWidth - hw
+        val lim = (fieldHalfWidth - hw).coerceAtLeast(0f)   // a window narrower than the paddle
         val speedP = World.paddleSpeed(aspect)
         val ballY = World.PADDLE_Y - World.PADDLE_HH - World.BALL_R
         var bestScore = -1e9f
@@ -1078,7 +1091,7 @@ class Game(private val host: GameHost = GameHost.None) {
         // The primary ball: the one that comes down first and can still be
         // caught. A ball that is already out of reach is written off.
         val hw = paddleHalfWidth
-        val lim = fieldHalfWidth - hw
+        val lim = (fieldHalfWidth - hw).coerceAtLeast(0f)
         val speedP = World.paddleSpeed(aspect)
         var primary = -1
         var primaryT = 1e9f

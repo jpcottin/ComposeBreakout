@@ -1,6 +1,8 @@
 package com.jpcottin.composebreakout.engine
 
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -114,6 +116,13 @@ class NarrowWindowTest {
         startGame(g)
         g.setSteer(1)
         step(g, 0.5f)                                // steering, bouncing, clamping every frame
+        assertEquals(0f, g.paddleX, 1e-6f)
+    }
+
+    @Test fun theAutopilotSurvivesAWindowNarrowerThanThePaddle() {
+        val g = newGame(aspect = 0.08f); startGame(g)
+        g.autoPlayActive = true
+        step(g, 3f)                                   // launch, flight, landing plan
         assertEquals(0f, g.paddleX, 1e-6f)
     }
 }
@@ -444,6 +453,36 @@ class BallTest {
         assertEquals(20L * 3, g.score)
     }
 
+    @Test fun aCeilingCornerGrazeIsOneHitAndStaysUnderTheCeiling() {
+        val g = playing(); g.debug.startLevel(7)                       // row 0 is ARMOR: three hits
+        val armor = brickAt(g, 0, 3); keepOnly(g, armor, brickAt(g, 0, 0))
+        val top = World.TOP_WALL_Y + World.BALL_R
+        val a = 65f * 3.14159265f / 180f; val dx = sin(a); val dy = -cos(a)
+        val xc = g.brickX(armor) - World.BRICK_HW - World.BALL_R + 0.003f   // meets the ceiling at the brick's top-left corner
+        g.debug.setBall(xc - dx * 0.3f, top + cos(a) * 0.3f, dx, dy)
+        repeat(60) { g.update(Game.TICK); assertTrue(g.balls[0].y >= top - 1e-5f) }
+        assertTrue(armor.alive); assertEquals(2, armor.hp)             // one touch, one hit
+    }
+
+    @Test fun aWallSideCornerHitIsOneHitAndBouncesDown() {
+        val g = playing(); g.debug.startLevel(3)                       // row 0 is TOUGH: two hits
+        val tough = brickAt(g, 0, g.wallColumns - 1); keepOnly(g, tough, brickAt(g, 0, 0))
+        val lim = g.fieldHalfWidth - World.BALL_R
+        g.debug.setBall(lim, -0.7425f, 0.14f, -0.99f)                  // rising along the right wall into the bottom corner
+        g.update(DT)
+        assertTrue(tough.alive); assertEquals(1, tough.hp)
+        assertTrue(g.balls[0].dy > 0f); assertTrue(g.balls[0].x <= lim + 1e-5f)
+    }
+
+    @Test fun aBallAlreadyUnderThePaddleFaceIsNotScoopedUp() {
+        val g = playing()
+        g.debug.setPaddleX(0f)
+        g.debug.setBall(0.13f, 0.64f, 0f, 1f)        // beside the paddle, its top under the face
+        g.debug.setPaddleX(0.03f)                    // the paddle slides under it
+        g.update(DT)
+        assertTrue(g.balls[0].dy > 0f)               // still falling
+    }
+
     @Test fun steelBrickNeverBreaks() {
         val g = playing()
         g.debug.startLevel(5)
@@ -453,6 +492,7 @@ class BallTest {
         g.debug.setBall(g.brickX(steel), g.brickY(steel) + 0.15f, 0f, -1f)
         step(g, 0.3f)
         assertTrue(steel.alive)
+        assertTrue("steel is not a brick the ball made progress on: dry ${g.balls[0].dry}", g.balls[0].dry >= 0.29f)
         assertEquals(0L, g.score)
         assertTrue(g.balls[0].dy > 0f)
         assertEquals(Game.State.PLAYING, g.state)
