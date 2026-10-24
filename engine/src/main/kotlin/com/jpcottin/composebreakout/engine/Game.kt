@@ -296,6 +296,11 @@ class Game(private val host: GameHost = GameHost.None) {
     /** A round is in progress (worth saving across process death). */
     val isMidGame: Boolean get() = state == State.PLAYING || state == State.LEVEL_CLEAR
 
+    /** The level a saved session should come back to: in the level-clear
+     *  interlude the wall is gone and its bonus banked, so it is the next one
+     *  (restoring the cleared level would replay it and pay the bonus twice). */
+    val resumeLevel: Int get() = if (state == State.LEVEL_CLEAR) level + 1 else level
+
     /** The screen is going away or something covers it: freeze a round in
      *  flight. Nothing to freeze on the title, a held serve or an end screen. */
     fun pause() {
