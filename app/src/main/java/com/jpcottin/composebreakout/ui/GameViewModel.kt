@@ -7,6 +7,8 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.os.Bundle
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -36,7 +38,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+/** A damaged file is replaced with an empty one instead of failing every edit for its lifetime. */
+internal val settingsCorruptionHandler = ReplaceFileCorruptionHandler<Preferences> { emptyPreferences() }
+
+private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(
+    name = "settings", corruptionHandler = settingsCorruptionHandler,
+)
 
 /** The player's choices, persisted in DataStore. */
 data class Settings(
@@ -138,14 +145,19 @@ class GameViewModel(
         }
     }
 
+    /** A write that must never take the process down: a failed disk loses a setting, not the game. */
+    private fun persist(block: (MutablePreferences) -> Unit) = viewModelScope.launch {
+        try { store.edit(block) } catch (e: IOException) { /* best effort: the in-memory value stands */ }
+    }
+
     fun setSoundEnabled(on: Boolean) {
         game.soundEnabled = on
-        viewModelScope.launch { store.edit { it[KEY_SOUND] = on } }
+        persist { it[KEY_SOUND] = on }
     }
 
     fun setAutoPlay(on: Boolean) {
         game.autoPlayActive = on
-        viewModelScope.launch { store.edit { it[KEY_AUTO_PLAY] = on } }
+        persist { it[KEY_AUTO_PLAY] = on }
     }
 
     /** Whether the vibrator speaks at all: the Haptics switch in Settings. */
@@ -153,7 +165,7 @@ class GameViewModel(
 
     fun setHaptics(on: Boolean) {
         hapticsEnabled = on
-        viewModelScope.launch { store.edit { it[KEY_HAPTICS] = on } }
+        persist { it[KEY_HAPTICS] = on }
     }
 
     /** Auto Play on and a round started: the game plays itself from here. */
@@ -166,7 +178,7 @@ class GameViewModel(
     fun resetProgress() {
         game.restoreHighScores(emptyList())
         game.furthestLevel = 1
-        viewModelScope.launch { store.edit { it.remove(KEY_HIGH_SCORES); it.remove(KEY_FURTHEST_LEVEL) } }
+        persist { it.remove(KEY_HIGH_SCORES); it.remove(KEY_FURTHEST_LEVEL) }
     }
 
     override fun onCleared() {
@@ -200,15 +212,13 @@ class GameViewModel(
     }
 
     override fun furthestLevelChanged(level: Int) {
-        viewModelScope.launch { store.edit { it[KEY_FURTHEST_LEVEL] = maxOf(it[KEY_FURTHEST_LEVEL] ?: 1, level) } }
+        persist { it[KEY_FURTHEST_LEVEL] = maxOf(it[KEY_FURTHEST_LEVEL] ?: 1, level) }
     }
 
     override fun highScoresChanged(table: List<HighScore>) {
         // The phone and the glasses instances share the store: fold the other
         // one's rows in rather than overwrite them.
-        viewModelScope.launch {
-            store.edit { prefs -> prefs[KEY_HIGH_SCORES] = mergeScores(prefs[KEY_HIGH_SCORES], table) }
-        }
+        persist { prefs -> prefs[KEY_HIGH_SCORES] = mergeScores(prefs[KEY_HIGH_SCORES], table) }
     }
 
     companion object {

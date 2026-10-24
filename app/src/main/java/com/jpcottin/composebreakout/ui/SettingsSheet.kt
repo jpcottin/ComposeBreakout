@@ -1,6 +1,9 @@
 package com.jpcottin.composebreakout.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -132,7 +135,8 @@ fun SettingsContent(
     onHapticsChange: (Boolean) -> Unit = {},
     onResetProgress: () -> Unit = {},
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+    // Scrolls: a short landscape window or a large font would otherwise cut Done off.
+    Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(
             text = stringResource(R.string.settings),
             style = MaterialTheme.typography.headlineMedium,
@@ -191,11 +195,13 @@ private fun SettingRow(
         modifier = Modifier
             .fillMaxWidth()
             .focusRing(interaction, shape)
-            .clickable(
+            // toggleable, not clickable: the row carries the on/off state a screen reader announces.
+            .toggleable(
+                value = checked,
                 interactionSource = interaction,
                 indication = null,
                 role = Role.Switch,
-                onClick = { onCheckedChange(!checked) },
+                onValueChange = onCheckedChange,
             )
             .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
