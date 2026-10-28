@@ -243,6 +243,22 @@ class GameScreenTest {
     }
 
     @Test
+    fun theGearLetsGoOfASteeringKey() {
+        val game = launchARound()
+        val playfield = focusThePlayfield()
+        playfield.performKeyInput { keyDown(Key.DirectionRight) }
+        frames(2)
+        assertTrue("the key should steer", game.moveHeld)
+        // The sheet takes the focus with it: the key's release lands there,
+        // never on the playfield.
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
+        frames(2)
+        assertTrue(game.paused)
+        assertFalse("a key held when the sheet opened must not steer on", game.moveHeld)
+        runCatching { playfield.performKeyInput { keyUp(Key.DirectionRight) } }
+    }
+
+    @Test
     fun escapeFreezesTheRoundAndFreesItAgain() {
         val game = launchARound()
         val playfield = focusThePlayfield()

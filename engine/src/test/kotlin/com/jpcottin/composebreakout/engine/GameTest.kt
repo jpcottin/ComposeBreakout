@@ -1125,6 +1125,32 @@ class PauseTest {
         assertNotEquals(y, g.balls[0].y)
     }
 
+    @Test fun pauseLetsGoOfASteeringKey() {
+        val g = playing()
+        g.debug.launch()
+        step(g, 0.2f)
+        g.setSteer(1)
+        assertTrue(g.moveHeld)
+        g.pause()                        // the key's release lands wherever the focus went
+        assertTrue(g.paused)
+        assertFalse(g.moveHeld)
+        val x = g.paddleX
+        tap(g)
+        step(g, 0.5f)
+        assertFalse(g.paused)
+        assertEquals(x, g.paddleX, 0f)   // nothing steers until a key is pressed again
+    }
+
+    @Test fun aHeldServeLetsGoOfASteeringKeyToo() {
+        val g = playing()
+        g.setSteer(1)
+        g.pause()                        // nothing to freeze, but the key is gone
+        assertFalse(g.paused)
+        assertFalse(g.moveHeld)
+        step(g, 2f)
+        assertTrue(g.ballHeld)           // a phantom key would have launched it
+    }
+
     @Test fun autopilotResumesByItself() {
         val g = playing()
         g.autoPlayActive = true
