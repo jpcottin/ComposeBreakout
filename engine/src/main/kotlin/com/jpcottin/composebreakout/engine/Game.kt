@@ -302,8 +302,13 @@ class Game(private val host: GameHost = GameHost.None) {
     val resumeLevel: Int get() = if (state == State.LEVEL_CLEAR) level + 1 else level
 
     /** The screen is going away or something covers it: freeze a round in
-     *  flight. Nothing to freeze on the title, a held serve or an end screen. */
+     *  flight. Nothing to freeze on the title, a held serve or an end screen.
+     *  A steering key is let go either way: its release lands wherever the
+     *  focus went (a settings sheet, another app), never here, and a key the
+     *  engine still thinks held would slide the paddle to the lane's edge and
+     *  launch a held ball once the screen is back. */
     fun pause() {
+        steer = 0
         if (state == State.PLAYING && !ballHeld) paused = true
     }
 
