@@ -180,6 +180,25 @@ class GameScreenTest {
     }
 
     @Test
+    fun aScoreBelowThePodiumIsStillNamedANewHighScore() {
+        frames(5)
+        val game = game()
+        // Three better scores on record: this round's 500 lands fourth, in
+        // the table but off the podium. The last ball drops past the paddle.
+        scenario.onActivity {
+            game.restoreHighScores(listOf(HighScore(3000, 3), HighScore(2000, 2), HighScore(1000, 1)))
+            game.restoreSession(1, 500, 1)
+            game.debug.setBall(0.30f, 0.68f, 0f, 1f)
+        }
+        stepUntil(120) { game.state == Game.State.GAME_OVER }
+        assertEquals(Game.State.GAME_OVER, game.state)
+        assertEquals(3, game.newHighScoreRank)
+        frames(2)
+        composeTestRule.onNodeWithText("#4").assertIsDisplayed()
+        composeTestRule.onNodeWithText("NEW HIGH SCORE").assertIsDisplayed()
+    }
+
+    @Test
     fun aCancelledTouchLetsGoOfThePaddle() {
         val game = launchARound()
         val playfield = composeTestRule.onNodeWithContentDescription("Playfield")
