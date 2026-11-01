@@ -75,7 +75,8 @@ emulator with the `autoplay` launch extra.
   life (up to nine). Five lives to start.
 - **Scoring:** 10 / 20 / 30 points per brick kind times the level, 25 times
   the level per bonus, 100 times the level per cleared wall. The top five
-  scores are kept; the top three show on the title screen.
+  scores are kept; the top three show on the title screen, and the end
+  screen names the rank of any new entry, podium or not.
 - **Auto Play** (Settings): the autopilot plays the round. It works out
   where each ball comes down, gets the paddle there, and picks *where on
   the paddle* to take it so the rebound does the most damage: every
@@ -239,7 +240,7 @@ are read.
 |-----|-------------|-------|
 | **Build, lint, tests, screenshots** | Engine JUnit tests, Android lint, app unit tests, Compose preview screenshot validation, the debug and the minified release APK (`apks` artifact) | yes |
 | **Auto Play bench** | Seeded campaigns with the autopilot on a portrait phone (100), a landscape screen (50) and a foldable's inner screen (50); fails under a 95% campaign win rate | yes |
-| **Instrumented** | The instrumented tests (title, a round by tap and by D-pad, pause from the background, the gear, Escape and Back, a cancelled touch, a key held when the gear opens, activity recreation, the level pick by touch and keys, reset progress, the settings sheet, the screen-reader announcement) on emulators: phones at API 33, 34, 35 and 36, a foldable and a TV at API 36 — on the lavapipe software Vulkan GPU or the emulator's auto choice, with `-delay-adb` so a device going offline mid-boot cannot fail a leg. The TV leg boots its emulator itself (`.github/scripts/boot-emulator.sh`), as that image restarts adbd right after boot and the runner action's first key press used to meet it | yes |
+| **Instrumented** | The instrumented tests (title, a round by tap and by D-pad, pause from the background, the gear, Escape and Back, a cancelled touch, a key held when the gear opens, activity recreation, the level pick by touch and keys, reset progress, the settings sheet, the screen-reader announcement, a new high score below the podium) on emulators: phones at API 33, 34, 35 and 36, a foldable and a TV at API 36 — on the lavapipe software Vulkan GPU or the emulator's auto choice, with `-delay-adb` so a device going offline mid-boot cannot fail a leg. The TV leg boots its emulator itself (`.github/scripts/boot-emulator.sh`), as that image restarts adbd right after boot and the runner action's first key press used to meet it | yes |
 | **Instrumented, experimental** | The same tests on an XR headset (API 34, `google-xr`), on a swiftshader comparison leg, and on the page-size-16k images: API 37.0 with the stable emulator, 37.0, 37.1 and 37.2 with the canary one, on lavapipe and auto GPU | no |
 | **Android CLI experiment** | The whole emulator flow through the Android CLI (`android sdk install`, `android emulator create/start/stop`) on the canary emulator, API 37.0 and 37.2 | no |
 | **Emulator Preview experiment** | The `emulators;latest` preview package launched by its own binary, API 37.0, 37.1 and 37.2 | no |

@@ -360,8 +360,10 @@ internal fun EndScreen(game: Game, frame: LongState, title: String, tint: Color,
     observe(frame)
     val pulse = 0.5f + 0.5f * sin(game.animTime * 4f)
     Box(Modifier.fillMaxSize().background(tint.copy(alpha = tint.alpha * (0.7f + 0.3f * pulse)))) {
-        if (game.newHighScore && game.newHighScoreRank in 0..2) {
-            val c = PodiumColors[game.newHighScoreRank]
+        // Every new entry of the table is named by its rank: the podium in its
+        // metal, the two places under it in the paddle's cyan.
+        if (game.newHighScore && game.newHighScoreRank in 0 until Game.MAX_SCORES) {
+            val c = PodiumColors.getOrElse(game.newHighScoreRank) { PaddleCyan }
             Column(Modifier.atWorld(0f, -0.42f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "#${game.newHighScoreRank + 1}",
