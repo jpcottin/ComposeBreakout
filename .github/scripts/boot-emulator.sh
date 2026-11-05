@@ -84,15 +84,32 @@ hw.gpu.enabled=yes
 hw.gpu.mode=auto
 CFG
 fi
+# The emulator refuses to start unless the disk holding the AVD has room for
+# 1.2 times the data partition it is asked for ("Not enough space to create
+# userdata partition"), and a runner image can leave less than that: one
+# had 6.8 GB free next to an 8 GB request, and the leg died at launch before
+# a test had run. So the partition asked for is a ceiling; what the disk
+# allows is the size, in 512 MB steps with 512 MB kept back, never below
+# 2 GB (the APK and the test run fit in far less).
+WANT="${DISK_SIZE:-4096M}"; WANT="${WANT%M}"
+AVAIL=$(df -Pm "$AVD_HOME" | awk 'NR == 2 { print $4 }')
+if [ -n "$AVAIL" ] && [ "$AVAIL" -gt 0 ] 2>/dev/null; then
+    FIT=$(( (AVAIL - 512) * 10 / 12 / 512 * 512 ))
+    [ "$FIT" -lt 2048 ] && FIT=2048
+    if [ "$FIT" -lt "$WANT" ]; then
+        echo "data partition: ${WANT}M asked, ${AVAIL} MB free on the AVD's disk, ${FIT}M it is"
+        WANT=$FIT
+    fi
+fi
 {
     echo "hw.ramSize=${RAM_SIZE%M}"
     [ -n "${CORES:-}" ] && echo "hw.cpu.ncore=${CORES}"
-    echo "disk.dataPartition.size=${DISK_SIZE:-8192M}"
+    echo "disk.dataPartition.size=${WANT}M"
 } >> "$CONFIG"
 echo "===== AVD root ini ====="; cat "${ANDROID_AVD_HOME:-$HOME/.android/avd}/$AVD.ini"
 echo "===== AVD config.ini ====="; cat "$CONFIG"
 
-# Cold boot, no snapshot, a large userdata partition so the APK can stage,
+# Cold boot, no snapshot, a userdata partition as large as the disk allows,
 # and adb held off until boot completes (-delay-adb): a device that goes
 # offline mid-boot used to fail a leg.
 # The emulator pre-authorises the host's adb key by reading
