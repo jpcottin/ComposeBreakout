@@ -1199,6 +1199,21 @@ class PauseTest {
         assertTrue(g.animTime > t)
     }
 
+    @Test fun aFoldWhilePausedServesUnpaused() {
+        // The gear froze a ball in flight; the device is unfolded while the sheet is open.
+        val g = playing()
+        g.debug.launch()
+        step(g, 0.2f)
+        g.pause()
+        assertTrue(g.paused)
+        g.setAspect(FOLDABLE)
+        assertTrue(g.ballHeld)           // the wall is rebuilt and a fresh ball served
+        assertFalse(g.paused)            // nothing in flight to resume
+        step(g, Game.SERVE_DELAY + 0.1f)
+        tap(g)                           // one tap serves; it does not merely resume
+        assertFalse(g.ballHeld)
+    }
+
     @Test fun aLostRoundClearsThePause() {
         val g = playing()
         g.debug.setLives(1)
