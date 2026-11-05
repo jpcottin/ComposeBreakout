@@ -243,6 +243,10 @@ class Game(private val host: GameHost = GameHost.None) {
                     resetBattlefield()
                     speedBoost = 0f
                     serveBall()
+                    // The round was frozen with a ball in flight; that ball is gone and the
+                    // new one waits on the paddle for a tap anyway. A pause left standing
+                    // would put "tap to resume" over a held serve and cost a second tap.
+                    paused = false
                 }
                 else -> Unit   // the next level or the title rebuilds
             }

@@ -146,7 +146,10 @@ emulator with the `autoplay` launch extra.
   remote or a keyboard always shows where focus is.
 - **The lane** — a wide screen (landscape, an unfolded foldable, a tablet, an
   XR panel) plays in a central lane of at most 10 brick columns with shaded
-  margins, rather than a wall three times wider than a paddle can cover.
+  margins, rather than a wall three times wider than a paddle can cover. A
+  fold or unfold mid-level rebuilds the wall for the new lane and serves a
+  fresh ball (score and lives stay); a round that was paused when it happened
+  is not left paused over the held serve.
 - **DataStore** for settings and the high-score table; the engine reports
   changes through a `GameHost` interface and never touches storage itself.
   A round in progress survives process death: the `ViewModel` registers a
