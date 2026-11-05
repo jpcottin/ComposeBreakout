@@ -91,7 +91,7 @@ fi
 # a test had run. So the partition asked for is a ceiling; what the disk
 # allows is the size, in 512 MB steps with 512 MB kept back, never below
 # 2 GB (the APK and the test run fit in far less).
-WANT="${DISK_SIZE:-8192M}"; WANT="${WANT%M}"
+WANT="${DISK_SIZE:-4096M}"; WANT="${WANT%M}"
 AVAIL=$(df -Pm "$AVD_HOME" | awk 'NR == 2 { print $4 }')
 if [ -n "$AVAIL" ] && [ "$AVAIL" -gt 0 ] 2>/dev/null; then
     FIT=$(( (AVAIL - 512) * 10 / 12 / 512 * 512 ))
