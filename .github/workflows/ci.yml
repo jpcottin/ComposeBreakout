@@ -319,7 +319,7 @@ jobs:
           # completes, and some images (the TV) restart adbd right then: the
           # command fails and takes the leg with it. The script settles the
           # device first, disables the animations itself, and gives Gradle a
-          # second run when the guest restarted under it.
+          # run or two more when the guest restarted under it.
           disable-animations: false
           script: |
             echo "===== AVD root ini ====="; cat "$HOME/.android/avd/test.ini" 2>/dev/null || echo "(test.ini not found)"
