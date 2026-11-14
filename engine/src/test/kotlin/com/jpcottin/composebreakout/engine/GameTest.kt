@@ -569,6 +569,18 @@ class BonusTest {
         assertEquals(0f, g.wideTimer, 0f)
     }
 
+    @Test fun aCapsuleStillFallingGoesWithTheLastBall() {
+        val g = playing()
+        g.debug.spawnPowerUp(-0.40f, 0.0f, Game.PowerUpType.SLOW)
+        g.debug.setLives(1)
+        loseABall(g)
+        assertEquals(Game.State.GAME_OVER, g.state)
+        // Nothing moves on the end screen; a capsule left there would hang
+        // in the air until the title.
+        assertTrue(g.powerUps.isEmpty())
+        assertEquals(0L, g.score)
+    }
+
     @Test fun widePaddleWidensThenExpires() {
         val g = playing()
         g.debug.activatePowerUp(Game.PowerUpType.WIDE)

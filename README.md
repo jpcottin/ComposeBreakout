@@ -72,7 +72,8 @@ emulator with the `autoplay` launch extra.
   keeps going.
 - **Bonuses** drop from broken bricks: a wide paddle (10 s), a slow ball
   (8 s), multi-ball (every ball splits in three, up to six) and an extra
-  life (up to nine). Five lives to start.
+  life (up to nine). Five lives to start. A capsule still in the air when
+  the last ball is lost goes with it: nothing moves on the end screen.
 - **Scoring:** 10 / 20 / 30 points per brick kind times the level, 25 times
   the level per bonus, 100 times the level per cleared wall. The top five
   scores are kept; the top three show on the title screen, and the end
