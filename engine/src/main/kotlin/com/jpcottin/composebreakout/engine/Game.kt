@@ -574,7 +574,9 @@ class Game(private val host: GameHost = GameHost.None) {
     }
 
     /** The last ball went into the pit: a life, the bonuses and the shake.
-     *  The next ball is served at once; the game ends on the last life. */
+     *  The next ball is served at once; the game ends on the last life, and
+     *  a capsule still falling goes with it (nothing moves on the end screen,
+     *  so it would hang in the air until the title). */
     private fun loseBall() {
         ballsLost++
         lives--
@@ -586,6 +588,7 @@ class Game(private val host: GameHost = GameHost.None) {
         explosionsList.add(Explosion(paddleX, World.PADDLE_Y, World.PADDLE_HW * 0.6f, 0.25f, 1f, 0.35f, 0.30f))
         if (lives <= 0) {
             ballsList.clear()
+            powerUpsList.clear()
             paused = false
             state = State.GAME_OVER; stateTimer = 0f
             checkHighScore()
