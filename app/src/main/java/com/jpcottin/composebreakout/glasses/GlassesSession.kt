@@ -53,7 +53,7 @@ object GlassesSession {
             while (isActive) {
                 try {
                     ProjectedContext.isProjectedDeviceConnected(app, s.coroutineContext).collect { value ->
-                        connectedState.value = value
+                        connectionChanged(value)
                         Log.i(TAG, "Glasses connected: $value")
                     }
                 } catch (t: Throwable) {
@@ -81,6 +81,19 @@ object GlassesSession {
     /** The phone asks for the game back: the glasses activity finishes. */
     fun bringBack() {
         activeState.value = false
+    }
+
+    /**
+     * The pairing flow reported [value]. Glasses that go away take the game's
+     * display with them: the session ends, so the glasses activity finishes
+     * and the phone's field unfreezes, rather than staying under the banner
+     * until someone opens Settings to bring back a game no lens is showing.
+     * (A failure of the flow itself is not a disconnection and leaves the
+     * session alone.)
+     */
+    internal fun connectionChanged(value: Boolean) {
+        connectedState.value = value
+        if (!value) activeState.value = false
     }
 
     internal fun setActive(value: Boolean) {
