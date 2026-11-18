@@ -101,8 +101,8 @@ emulator with the `autoplay` launch extra.
   Glasses row — *PLAY* hands the game to the glasses' projected display,
   where the **touchbar** drives it: finger position steers the paddle,
   contact launches the ball. The phone shows an "ON GLASSES" banner over
-  its frozen field; *PHONE* (in Settings) brings the game home. With
-  nothing paired the row reads *NONE*.
+  its frozen field; *PHONE* (in Settings) brings the game home, and so
+  does a pair that disconnects. With nothing paired the row reads *NONE*.
 
 ## Modules
 
