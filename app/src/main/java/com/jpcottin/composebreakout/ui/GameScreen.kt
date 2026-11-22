@@ -95,6 +95,17 @@ fun GameScreen(viewModel: GameViewModel) {
     val glassesActive by GlassesSession.active.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
     val onGlasses = viewModel.role == GameViewModel.Role.GLASSES
+    // The notification shade, a dialog or the other pane of a split screen
+    // takes the window's focus without pausing the activity: a round in
+    // flight freezes then too, so a ball is not lost while nobody looks.
+    // The glasses' projected window does not hold the focus the phone has,
+    // so it is left out.
+    if (!onGlasses) {
+        val windowFocused = LocalWindowInfo.current.isWindowFocused
+        LaunchedEffect(viewModel, windowFocused) {
+            if (windowFocused) viewModel.game.resume() else viewModel.game.pause()
+        }
+    }
     GameScreen(
         game = viewModel.game,
         settings = settings,

@@ -236,6 +236,35 @@ class GameScreenTest {
     }
 
     @Test
+    fun aWindowOverTheGamePausesTheRoundWhileTheActivityStaysResumed() {
+        // The notification shade or a dialog takes the window's focus but
+        // leaves the activity resumed: the round must freeze all the same.
+        val game = launchARound()
+        lateinit var cover: android.app.Dialog
+        scenario.onActivity {
+            cover = android.app.Dialog(it).apply {
+                setContentView(android.widget.TextView(it).apply { text = "Cover" })
+                show()
+            }
+        }
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        for (attempt in 1..50) {
+            instrumentation.waitForIdleSync()
+            frames(1)
+            if (game.paused) break
+            Thread.sleep(20)
+        }
+        assertEquals(Lifecycle.State.RESUMED, scenario.state)
+        assertTrue("a window over the game should freeze the round", game.paused)
+        scenario.onActivity { cover.dismiss() }
+        for (attempt in 1..10) { instrumentation.waitForIdleSync(); frames(1); Thread.sleep(20) }
+        assertTrue(game.paused)                                       // still waiting for the player
+        composeTestRule.onNodeWithContentDescription("Playfield").performClick()
+        frames(5)
+        assertFalse(game.paused)
+    }
+
+    @Test
     fun aRecreatedActivityKeepsTheRound() {
         // A rotation, a fold, a theme change: the activity is recreated and
         // the engine, held by the ViewModel, carries on where it was.
