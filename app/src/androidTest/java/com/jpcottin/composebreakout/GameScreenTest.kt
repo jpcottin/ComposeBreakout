@@ -26,6 +26,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -240,6 +241,22 @@ class GameScreenTest {
         // The notification shade or a dialog takes the window's focus but
         // leaves the activity resumed: the round must freeze all the same.
         val game = launchARound()
+        // Focus moves between windows on its own schedule: wait for it in
+        // real time, with the game clock stopped, so the ball cannot be lost
+        // (and the serve held, which needs no pause) while the test waits.
+        fun windowFocused(): Boolean {
+            var focused = false
+            scenario.onActivity { focused = it.hasWindowFocus() }
+            return focused
+        }
+        fun waitForFocus(focused: Boolean) {
+            for (attempt in 1..100) {
+                if (windowFocused() == focused) break
+                Thread.sleep(50)
+            }
+        }
+        waitForFocus(true)
+        assumeTrue("the game's window never got the focus on this device", windowFocused())
         lateinit var cover: android.app.Dialog
         scenario.onActivity {
             cover = android.app.Dialog(it).apply {
@@ -247,17 +264,14 @@ class GameScreenTest {
                 show()
             }
         }
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        for (attempt in 1..50) {
-            instrumentation.waitForIdleSync()
-            frames(1)
-            if (game.paused) break
-            Thread.sleep(20)
-        }
+        waitForFocus(false)
+        assertFalse("the dialog should hold the focus", windowFocused())
+        frames(2)
         assertEquals(Lifecycle.State.RESUMED, scenario.state)
         assertTrue("a window over the game should freeze the round", game.paused)
         scenario.onActivity { cover.dismiss() }
-        for (attempt in 1..10) { instrumentation.waitForIdleSync(); frames(1); Thread.sleep(20) }
+        waitForFocus(true)
+        frames(5)
         assertTrue(game.paused)                                       // still waiting for the player
         composeTestRule.onNodeWithContentDescription("Playfield").performClick()
         frames(5)
