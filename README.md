@@ -182,7 +182,7 @@ emulator with the `autoplay` launch extra.
 - **An icon that is the game** — adaptive launcher icon (bricks with a gloss,
   the ball mid-bounce with its trail, the paddle), a monochrome layer for
   themed icons, and a TV banner with the name set in a bitmap block font.
-- AGP 9, Kotlin 2.4, Compose BOM 2026.09, `minSdk 26`, `compileSdk 37`.
+- AGP 9, Kotlin 2.4, Compose BOM 2026.11, `minSdk 26`, `compileSdk 37.1`.
 
 ## The Auto Play bench
 

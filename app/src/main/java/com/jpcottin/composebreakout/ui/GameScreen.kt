@@ -275,6 +275,9 @@ fun GameScreen(
                 // Every finger reaches the engine in world coordinates; the
                 // engine decides what a touch does from where it lands. A
                 // change a button already consumed (the gear) is not a tap.
+                // The changes are read, never consumed: a button's click
+                // gives up on a press its parent consumed, so consuming here
+                // would swallow every tap on the gear and the level arrows.
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -286,7 +289,7 @@ fun GameScreen(
                             // arrives as an already-consumed lift, and losing
                             // it would leave a phantom finger on the paddle.
                             // An id the engine never saw is a harmless no-op.
-                            if (change.changedToUpIgnoreConsumed()) { game.onPointerUp(id); change.consume(); continue }
+                            if (change.changedToUpIgnoreConsumed()) { game.onPointerUp(id); continue }
                             if (change.isConsumed) continue
                             val wx = (change.position.x / size.width * 2f - 1f) * asp
                             val wy = change.position.y / size.height * 2f - 1f
@@ -294,7 +297,6 @@ fun GameScreen(
                                 change.changedToDown() -> game.onPointerDown(id, wx, wy)
                                 change.pressed -> game.onPointerMove(id, wx, wy)
                             }
-                            change.consume()
                         }
                     }
                 }
