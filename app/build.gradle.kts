@@ -6,8 +6,13 @@ plugins {
 
 android {
     namespace = "com.jpcottin.composebreakout"
-    // The Jetpack XR projected APIs (Display AI Glasses) need compileSdk 37.
-    compileSdk = 37
+    // The Jetpack XR projected APIs (Display AI Glasses) need compileSdk 37, and
+    // Compose 1.13 needs its 37.1 minor release.
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     // Required by the Compose Preview Screenshot Testing plugin (screenshotTest source set).
     experimentalProperties["android.experimental.enableScreenshotTest"] = true
