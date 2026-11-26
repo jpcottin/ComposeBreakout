@@ -270,6 +270,20 @@ jobs:
           distribution: temurin
           cache: gradle
 
+      # The APKs are built before the emulator boots: a download that drops (a
+      # plugin the Gradle portal fails to serve) is retried here within seconds
+      # instead of failing the leg after the boot, and the guest is not kept
+      # running through minutes of compilation; the build in
+      # run-instrumented.sh then finds everything up to date.
+      - name: Build the app and test APKs
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon && exit 0
+            echo "Build attempt $attempt failed; retrying in 30 s"
+            sleep 30
+          done
+          exit 1
+
       - name: Enable KVM for hardware-accelerated emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
